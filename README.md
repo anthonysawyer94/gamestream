@@ -38,7 +38,7 @@ python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install django django-crispy-forms crispy-bootstrap5 requests
+pip install -r requirements.txt
 
 # Run migrations
 python3 manage.py migrate
