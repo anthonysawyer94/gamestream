@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/anthonysawyer94/gamestream">
-    <img src="https://placehold.co/200x60?text=GameStream" alt="GameStream logo">
+    <img src="https://raw.githubusercontent.com/anthonysawyer94/gamestream/main/assets/gamestream-banner.png" alt="GameStream logo">
   </a>
 </p>
 <p align="center">Never miss a game on your streaming services.</p>
