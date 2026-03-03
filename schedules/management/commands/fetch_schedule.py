@@ -1,0 +1,163 @@
+import requests
+from datetime import datetime, timedelta
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from schedules.models import Sport, Team, Game
+from services.models import StreamingService
+
+
+SPORT_MAPPING = {
+    'nba': {'name': 'Basketball', 'league': 'NBA', 'sport_path': 'basketball/nba'},
+    'mlb': {'name': 'Baseball', 'league': 'MLB', 'sport_path': 'baseball/mlb'},
+    'nhl': {'name': 'Hockey', 'league': 'NHL', 'sport_path': 'hockey/nhl'},
+    'ncaamb': {'name': 'Basketball', 'league': 'NCAA', 'sport_path': 'basketball/mens-college-basketball'},
+}
+
+BROADCAST_MAPPING = {
+    'ESPN': 'espn_plus',
+    'ESPN2': 'espn_plus',
+    'ESPN+': 'espn_plus',
+    'ABC': None,
+    'TNT': None,
+    'TBS': None,
+    'NBA TV': None,
+    'MLB Network': None,
+    'FOX': None,
+    'FS1': None,
+    'Amazon': 'prime_video',
+    'Prime Video': 'prime_video',
+    'Netflix': 'netflix',
+    'HBO Max': 'hbo_max',
+    'Max': 'hbo_max',
+    'Paramount+': 'paramount_plus',
+    'Apple TV+': 'apple_tv',
+    'Peacock': 'peacock',
+}
+
+
+class Command(BaseCommand):
+    help = 'Fetch sports schedule from ESPN API'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--days',
+            type=int,
+            default=9,
+            help='Number of days to fetch (default: 9 - includes yesterday for timezone coverage)'
+        )
+
+    def handle(self, *args, **options):
+        days = options['days']
+
+        for sport_key, sport_data in SPORT_MAPPING.items():
+            self.stdout.write(f"Fetching {sport_data['league']} schedule...")
+            self.fetch_sport_schedule(sport_data['sport_path'], sport_key, days)
+
+        self.stdout.write(self.style.SUCCESS('Successfully fetched sports schedule'))
+
+    def fetch_sport_schedule(self, sport_path, sport_key, days):
+        sport, created = Sport.objects.get_or_create(
+            slug=sport_key,
+            defaults={
+                'name': SPORT_MAPPING[sport_key]['name'],
+                'league': SPORT_MAPPING[sport_key]['league'],
+            }
+        )
+
+        today = timezone.now().date()
+        start_date = today - timedelta(days=1)  # Start from yesterday to cover timezone overlap
+        for day_offset in range(days):
+            date = start_date + timedelta(days=day_offset)
+            date_str = date.strftime('%Y%m%d')
+
+            url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
+            
+            try:
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+
+                if 'events' in data:
+                    self.process_events(data['events'], sport)
+
+            except requests.RequestException as e:
+                self.stdout.write(self.style.WARNING(f"Error fetching {date_str}: {e}"))
+                continue
+
+    def process_events(self, events, sport):
+        for event in events:
+            try:
+                competition = event.get('competitions', [{}])[0]
+                competitors = competition.get('competitors', [])
+
+                if len(competitors) < 2:
+                    continue
+
+                home_team_data = next((c for c in competitors if c.get('homeAway') == 'home'), None)
+                away_team_data = next((c for c in competitors if c.get('homeAway') == 'away'), None)
+
+                if not home_team_data or not away_team_data:
+                    continue
+
+                home_team = self.get_or_create_team(home_team_data, sport)
+                away_team = self.get_or_create_team(away_team_data, sport)
+
+                start_time_str = competition.get('date')
+                if start_time_str:
+                    start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                else:
+                    continue
+
+                broadcast_names = competition.get('broadcasts', [{}])[0].get('names', []) if competition.get('broadcasts') else []
+                broadcast = broadcast_names[0] if broadcast_names else ''
+
+                streaming_service = None
+                if broadcast_names:
+                    for b in broadcast_names:
+                        for key, slug in BROADCAST_MAPPING.items():
+                            if key and key.lower() in b.lower():
+                                streaming_service = StreamingService.objects.filter(slug=slug).first()
+                                if streaming_service:
+                                    broadcast = b
+                                    break
+                        if streaming_service:
+                            break
+
+                status = competition.get('status', {}).get('type', {}).get('state', 'scheduled')
+
+                espn_event_id = event.get('id')
+                if espn_event_id:
+                    game, created = Game.objects.update_or_create(
+                        sport=sport,
+                        espn_id=espn_event_id,
+                        defaults={
+                            'home_team': home_team,
+                            'away_team': away_team,
+                            'start_time': start_time,
+                            'broadcast': broadcast,
+                            'streaming_service': streaming_service,
+                            'status': status,
+                        }
+                    )
+
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Error processing event: {e}"))
+                continue
+
+    def get_or_create_team(self, team_data, sport):
+        team_info = team_data.get('team', {})
+        espn_id = team_info.get('id')
+
+        if not espn_id:
+            espn_id = team_data.get('id')
+
+        team, created = Team.objects.get_or_create(
+            sport=sport,
+            espn_id=espn_id,
+            defaults={
+                'name': team_info.get('displayName', 'Unknown'),
+                'abbreviation': team_info.get('abbreviation', 'UNK'),
+                'logo_url': team_info.get('logos', [{}])[0].get('href', '') if team_info.get('logos') else '',
+            }
+        )
+        return team

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GameStream - Sports Schedule{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .game-card { margin-bottom: 1rem; }
+        .team-logo { width: 40px; height: 40px; object-fit: contain; }
+        .service-badge { font-size: 0.75rem; padding: 0.4em 0.6em; font-weight: 600; }
+        
+        /* Streaming Service Brand Colors */
+        .badge-espn_plus { background-color: #D00000; color: white; }
+        .badge-prime_video { background-color: #00A8E1; color: white; }
+        .badge-netflix { background-color: #E50914; color: white; }
+        .badge-hbo_max { background-color: #8B5CF6; color: white; }
+        .badge-paramount_plus { background-color: #0064FF; color: white; }
+        .badge-apple_tv { background-color: #000000; color: white; border: 1px solid #333; }
+        .badge-peacock { background-color: #00CED1; color: #000; }
+        .badge-youtube_tv { background-color: #FF0000; color: white; }
+        .badge-hulu_live { background-color: #1CE783; color: #000; }
+        .badge-fubotv { background-color: #E20714; color: white; }
+        .badge-peacock { background-color: #000000; color: white; }
+        
+        /* Broadcast (OTA) badges */
+        .badge-broadcast { background-color: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">GameStream</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'schedule' %}">Schedule</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'subscriptions' %}">My Services</a>
+                        </li>
+                        <li class="nav-item">
+                            <span class="nav-link text-light">{{ user.username }}</span>
+                        </li>
+                        <li class="nav-item">
+                            <form method="post" action="{% url 'logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-link nav-link">Logout</button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'signup' %}">Sign Up</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            console.log('Your timezone: ' + userTimeZone);
+            
+            document.querySelectorAll('.game-time').forEach(function(el) {
+                const utcTime = el.getAttribute('data-utc');
+                if (utcTime) {
+                    const date = new Date(utcTime);
+                    const options = { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        timeZoneName: 'short'
+                    };
+                    el.textContent = date.toLocaleString(undefined, options);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

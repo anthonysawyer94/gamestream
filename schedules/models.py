@@ -1,0 +1,49 @@
+from django.db import models
+from services.models import StreamingService
+
+
+class Sport(models.Model):
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True)
+    league = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.league} - {self.name}"
+
+
+class Team(models.Model):
+    name = models.CharField(max_length=100)
+    abbreviation = models.CharField(max_length=10)
+    logo_url = models.URLField(blank=True)
+    sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name='teams')
+    espn_id = models.CharField(max_length=20)
+
+    class Meta:
+        unique_together = ('sport', 'espn_id')
+
+    def __str__(self):
+        return f"{self.abbreviation} - {self.sport.league}"
+
+
+class Game(models.Model):
+    sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name='games')
+    home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='home_games')
+    away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_games')
+    start_time = models.DateTimeField()
+    broadcast = models.CharField(max_length=200, blank=True)
+    streaming_service = models.ForeignKey(
+        StreamingService, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='games'
+    )
+    espn_id = models.CharField(max_length=20)
+    status = models.CharField(max_length=20, default='scheduled')
+
+    class Meta:
+        ordering = ['start_time']
+        unique_together = ('sport', 'espn_id')
+
+    def __str__(self):
+        return f"{self.away_team.abbreviation} @ {self.home_team.abbreviation} - {self.start_time.date()}"
