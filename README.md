@@ -8,7 +8,7 @@
   <a href="https://github.com/anthonysawyer94/gamestream/actions/workflows/ci.yml"><img alt="CI Status" src="https://img.shields.io/github/actions/workflow/status/anthonysawyer94/gamestream/ci.yml?style=flat-square" /></a>
   <a href="https://github.com/anthonysawyer94/gamestream/actions/workflows/deploy.yml"><img alt="Deploy Status" src="https://img.shields.io/github/actions/workflow/status/anthonysawyer94/gamestream/deploy.yml?style=flat-square" /></a>
   <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/python-3.14-blue?style=flat-square" /></a>
-  <a href="https://www.djangoproject.com/"><img alt="Django" src="https://img.shields.io/badge/Django-6.0-green?style=flat-square" /></a>
+  <a href="https://www.djangoproject.com/"><img alt="Django" src="https://img.shields.io/badge/Django-5.2.12-green?style=flat-square" /></a>
   <a href="https://github.com/anthonysawyer94/gamestream/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/anthonysawyer94/gamestream?style=flat-square" /></a>
   <a href="https://github.com/anthonysawyer94/gamestream/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/anthonysawyer94/gamestream?style=flat-square" /></a>
 </p>
