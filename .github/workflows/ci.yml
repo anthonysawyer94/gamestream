@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: "3.14"
 
       - name: Cache pip packages
         uses: actions/cache@v4
@@ -32,6 +32,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Django checks
+        env:
+          DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+          DJANGO_SECRET_KEY: "temporary-key-for-testing"
+          DJANGO_CSRF_TRUSTED_ORIGINS: "http://localhost:8000"
         run: python manage.py check
 
       - name: Run tests
