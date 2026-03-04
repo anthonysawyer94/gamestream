@@ -29,30 +29,22 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /opt/gamestream
 
-            # Pull latest code
+            # 1. Update the code on the server
             sudo git fetch origin main
             sudo git reset --hard origin/main
 
-            # Build new Docker image
-            sudo docker build -t gamestream .
+            # 2. Use Compose to handle the build and restart
+            # The -f flag ensures we ignore any local override files
+            sudo docker compose -f docker-compose.yml up -d --build
 
-            # Stop and remove old container
-            sudo docker stop gamestream || true
-            sudo docker rm gamestream || true
+            # 3. Clean up old, unused images to save disk space on AWS
+            sudo docker image prune -f
 
-            # Run new container with environment variables
-            sudo docker run -d \
-              --name gamestream \
-              -p 8000:8000 \
-              --restart unless-stopped \
-              -v /opt/gamestream:/app \
-              -e DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
-              -e DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }} \
-              -e DJANGO_CSRF_TRUSTED_ORIGINS=${{ secrets.DJANGO_CSRF_TRUSTED_ORIGINS }} \
-              -e DEBUG=False \
-              gamestream
+            # 4. Run migrations inside the new container & collect static files
+            sudo docker compose exec -T web python manage.py migrate --noinput
+            sudo docker compose exec -T web python manage.py collectstatic --noinput
 
-            # Refresh Apache to apply changes
+            # 5. Refresh Apache
             sudo systemctl restart apache2
           EOF
 
