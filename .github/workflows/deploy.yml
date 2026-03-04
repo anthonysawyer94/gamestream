@@ -27,28 +27,33 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd /opt/streaming-sports-schedule
+            cd /opt/gamestream
 
             # Pull latest code
             sudo git fetch origin main
             sudo git reset --hard origin/main
 
             # Build new Docker image
-            sudo docker build -t sports-schedule .
+            sudo docker build -t gamestream .
 
             # Stop and remove old container
-            sudo docker stop sports-schedule || true
-            sudo docker rm sports-schedule || true
+            sudo docker stop gamestream || true
+            sudo docker rm gamestream || true
 
             # Run new container with environment variables
             sudo docker run -d \
-              --name sports-schedule \
+              --name gamestream \
               -p 8000:8000 \
               --restart unless-stopped \
+              -v /opt/gamestream:/app \
               -e DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
               -e DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }} \
+              -e DJANGO_CSRF_TRUSTED_ORIGINS=${{ secrets.DJANGO_CSRF_TRUSTED_ORIGINS }} \
               -e DEBUG=False \
-              sports-schedule
+              gamestream
+
+            # Refresh Apache to apply changes
+            sudo systemctl restart apache2
           EOF
 
       - name: Cleanup SSH key
