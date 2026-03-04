@@ -1,0 +1,56 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Decode SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
+          chmod 600 ec2_key.pem
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /opt/streaming-sports-schedule
+
+            # Pull latest code
+            sudo git fetch origin main
+            sudo git reset --hard origin/main
+
+            # Build new Docker image
+            sudo docker build -t sports-schedule .
+
+            # Stop and remove old container
+            sudo docker stop sports-schedule || true
+            sudo docker rm sports-schedule || true
+
+            # Run new container with environment variables
+            sudo docker run -d \
+              --name sports-schedule \
+              -p 8000:8000 \
+              --restart unless-stopped \
+              -e DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
+              -e DJANGO_ALLOWED_HOSTS=${{ secrets.DJANGO_ALLOWED_HOSTS }} \
+              -e DEBUG=False \
+              sports-schedule
+          EOF
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ec2_key.pem

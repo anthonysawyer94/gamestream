@@ -11,60 +11,39 @@ This document provides guidelines for agents working on this Django sports strea
 
 ## Build/Lint/Test Commands
 
-### Running the Development Server
-
 ```bash
+# Activate virtual environment
 source venv/bin/activate
+
+# Run development server
 python3 manage.py runserver
-```
 
-### Running Tests
-
-```bash
 # Run all tests
 python3 manage.py test
 
-# Run tests for a specific app
+# Run tests for specific app
 python3 manage.py test schedules
 python3 manage.py test services
 
-# Run a single test
+# Run a single test (full path)
 python3 manage.py test schedules.tests.ScheduleViewTest.test_home_page
-python3 manage.py test services.tests.UserSubscriptionTest.test_subscription_creation
 
 # Run with verbosity
 python3 manage.py test -v 2
-```
 
-### Database Migrations
-
-```bash
-# Create migrations
-python3 manage.py makemigrations
-
-# Apply migrations
-python3 manage.py migrate
-
-# Show migration status
-python3 manage.py showmigrations
-```
-
-### Management Commands
-
-```bash
-# Seed streaming services
-python3 manage.py seed_services
-
-# Fetch schedule from ESPN API
-python3 manage.py fetch_schedule
-python3 manage.py fetch_schedule --days 14
-```
-
-### Django System Check
-
-```bash
+# Django system check
 python3 manage.py check
 python3 manage.py check --deploy
+
+# Database migrations
+python3 manage.py makemigrations
+python3 manage.py migrate
+python3 manage.py showmigrations
+
+# Management commands
+python3 manage.py seed_services
+python3 manage.py fetch_schedule
+python3 manage.py fetch_schedule --days 14
 ```
 
 ## Code Style Guidelines
@@ -72,32 +51,28 @@ python3 manage.py check --deploy
 ### Python Style
 
 - Follow **PEP 8** with 100 character line limit
-- Use **Black** for formatting (if available): `black .`
+- Use **Black** for formatting: `black .`
 - Use **isort** for import sorting: `isort .`
+- Avoid adding comments unless explicitly requested
 
-### Imports
+### Imports (in order)
 
 ```python
-# Standard library first
 import datetime
 from datetime import timedelta
-
-# Third-party imports
 import requests
 from django.db import models
 from django.shortcuts import render
-
-# Local imports
 from schedules.models import Game, Team
 from services.models import StreamingService
 ```
 
 ### Naming Conventions
 
-- **Models**: PascalCase (e.g., `StreamingService`, `UserSubscription`)
-- **Functions**: snake_case (e.g., `get_or_create_team`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `BROADCAST_MAPPING`)
-- **Template variables**: snake_case (e.g., `games_by_date`)
+- **Models**: PascalCase (`StreamingService`, `UserSubscription`)
+- **Functions**: snake_case (`get_or_create_team`)
+- **Constants**: UPPER_SNAKE_CASE (`BROADCAST_MAPPING`)
+- **Template variables**: snake_case (`games_by_date`)
 
 ### Django Best Practices
 
@@ -121,135 +96,62 @@ class StreamingService(models.Model):
         return self.name
 ```
 
-### Views
+### Views & Templates
 
-- Use function-based views for simple CRUD
-- Use `@login_required` for protected views
-- Always pass context to templates via `render(request, 'template.html', context)`
-- Use `select_related` and `prefetch_related` to reduce queries
-
-### Templates
-
-- Extend `base.html` for consistent layout
-- Use Bootstrap 5 classes
-- Use Django template tags: `{% url %}`, `{% for %}`, `{% if %}`
-- Access model fields directly (no complex logic in templates)
+Use function-based views, `@login_required`, extend `base.html`, use Bootstrap 5.
 
 ### Error Handling
 
 - Use `try/except` with specific exception types
 - Log warnings for non-critical errors
-- Return user-friendly error messages in views
-- Handle API failures gracefully in management commands
+- Handle API failures gracefully
 
 ### API Integration
 
-- Always set timeouts on HTTP requests (e.g., `timeout=30`)
-- Handle HTTP errors with try/except
-- Log errors but don't crash the application
-- Use environment variables for API keys
+Always set timeouts on HTTP requests (`timeout=30`) and handle errors:
 
 ```python
 try:
     response = requests.get(url, timeout=30)
     response.raise_for_status()
-    data = response.json()
 except requests.RequestException as e:
-    self.stdout.write(self.style.WARNING(f"Error fetching {url}: {e}"))
+    logger.warning(f"Error fetching {url}: {e}")
     return
 ```
 
-### File Organization
+## File Organization
 
 ```
 project/
-├── config/              # Django project settings
-│   ├── settings.py
-│   └── urls.py
-├── services/            # Streaming services app
-│   ├── models.py
-│   ├── views.py
-│   ├── urls.py
-│   └── management/commands/
-├── schedules/           # Games/schedule app
-│   ├── models.py
-│   ├── views.py
-│   ├── urls.py
-│   └── management/commands/
+├── config/              # Django settings & URLs
+├── services/           # Streaming services app
+├── schedules/          # Games/schedule app
 ├── templates/
-│   ├── base.html
-│   └── ...
-└── venv/               # Virtual environment
-```
-
-### Adding New Features
-
-1. Create models in appropriate app
-2. Run `makemigrations` and `migrate`
-3. Add views and URL routes
-4. Create templates
-5. Add tests
-6. Test locally with `runserver`
-
-### Commit Message Format
-
-```
-<type>: <short description>
-
-<optional body>
-
-<optional footer>
-```
-
-Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
-
-Example:
-
-```
-feat: add user subscription model
-
-Add UserSubscription model to link users with their
-streaming services for personalized schedules.
-
-Closes #12
+│   └── base.html
+└── venv/
 ```
 
 ## Testing Guidelines
 
-### Writing Tests
+Tests use a separate SQLite database (fresh each run). Use `setUp()` for test data.
 
 ```python
 from django.test import TestCase
-from django.utils import timezone
-from datetime import timedelta
 
 class ScheduleViewTest(TestCase):
-    def setUp(self):
-        # Create test data
-        pass
-
     def test_home_page_returns_games(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'home.html')
-
-    def test_unauthenticated_user_sees_all_games(self):
-        response = self.client.get('/')
-        self.assertContains(response, 'NBA')
 ```
 
-### Test Database
+## Adding New Features
 
-- Tests use separate SQLite database
-- Database is created fresh for each test run
-- Use `setUp()` to create test data
+1. Create models → 2. Run migrations → 3. Add views/URLs → 4. Create templates → 5. Add tests
 
 ## Quick Reference
 
-| Task       | Command                                                         |
-| ---------- | --------------------------------------------------------------- |
-| Server     | `python3 manage.py runserver`                                   |
-| Tests      | `python3 manage.py test`                                        |
-| Migrate    | `python3 manage.py makemigrations && python3 manage.py migrate` |
-| Shell      | `python3 manage.py shell`                                       |
-| Create app | `python3 manage.py startapp <app_name>`                         |
+| Task   | Command                                            |
+|--------|-----------------------------------------------------|
+| Server | `python3 manage.py runserver`                      |
+| Tests  | `python3 manage.py test`                           |
+| Migrate| `python3 manage.py makemigrations && migrate`      |

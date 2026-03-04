@@ -5,7 +5,8 @@
 </p>
 <p align="center">Never miss a game on your streaming services.</p>
 <p align="center">
-  <a href="https://github.com/anthonysawyer94/gamestream/actions/workflows/deploy.yml"><img alt="CI Status" src="https://img.shields.io/github/actions/workflow/status/anthonysawyer94/gamestream/deploy.yml?style=flat-square" /></a>
+  <a href="https://github.com/anthonysawyer94/gamestream/actions/workflows/ci.yml"><img alt="CI Status" src="https://img.shields.io/github/actions/workflow/status/anthonysawyer94/gamestream/ci.yml?style=flat-square" /></a>
+  <a href="https://github.com/anthonysawyer94/gamestream/actions/workflows/deploy.yml"><img alt="Deploy Status" src="https://img.shields.io/github/actions/workflow/status/anthonysawyer94/gamestream/deploy.yml?style=flat-square" /></a>
   <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/python-3.14-blue?style=flat-square" /></a>
   <a href="https://www.djangoproject.com/"><img alt="Django" src="https://img.shields.io/badge/Django-6.0-green?style=flat-square" /></a>
   <a href="https://github.com/anthonysawyer94/gamestream/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/anthonysawyer94/gamestream?style=flat-square" /></a>
@@ -55,13 +56,34 @@ python3 manage.py runserver
 
 Visit `http://localhost:8000` to view the app.
 
+### Docker
+
+```bash
+# Build and run with Docker
+docker compose up --build
+
+# Run migrations
+docker compose exec web python manage.py migrate
+
+# Seed streaming services
+docker compose exec web python manage.py seed_services
+```
+
+## Deployment
+
+Deployed automatically to AWS EC2 via GitHub Actions on push to main.
+
+- **CI:** Runs tests and linting on all PRs
+- **CD:** Builds Docker image and deploys to EC2 on main branch push
+
 ## Tech Stack
 
 - **Backend:** Django 6.0, Python 3.14
 - **Database:** SQLite (development)
 - **Frontend:** Django Templates, Bootstrap 5
 - **Data Source:** ESPN Unofficial API
-- **Deployment:** Docker, GitHub Actions, AWS EC2
+- **Container:** Docker, Gunicorn
+- **Deployment:** GitHub Actions, AWS EC2
 
 ## Contributing
 
