@@ -58,7 +58,6 @@ credentials
 *.csv  # often contains sample data
 
 # Docker
-# .dockerignore is tracked - needed for builds
 docker-compose.override.yml
 
 # Secrets - NEVER commit these!
