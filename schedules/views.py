@@ -1,9 +1,12 @@
+from datetime import timedelta
+
+from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
-from datetime import timedelta
-from django.db.models import Q
-from .models import Game, Sport
+
 from services.models import StreamingService, UserSubscription
+
+from .models import Game, Sport
 
 
 def home(request):

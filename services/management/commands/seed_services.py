@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
-from services.models import StreamingService
 
+from services.models import StreamingService
 
 SERVICES = [
     {'name': 'ESPN+', 'slug': 'espn_plus', 'website': 'https://plus.espn.com/'},

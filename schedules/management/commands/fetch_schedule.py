@@ -1,10 +1,11 @@
-import requests
 from datetime import datetime, timedelta
+
+import requests
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from schedules.models import Sport, Team, Game
-from services.models import StreamingService
 
+from schedules.models import Game, Sport, Team
+from services.models import StreamingService
 
 SPORT_MAPPING = {
     'nba': {'name': 'Basketball', 'league': 'NBA', 'sport_path': 'basketball/nba'},
