@@ -284,7 +284,13 @@
 <div class="row mb-4">
     <div class="col">
         <h1>Game Finder</h1>
-        <p class="text-muted">Never miss a kickoff or tip-off. Browse your custom schedule for the next 7 days and see exactly where to stream every game.</p>
+        <p class="text-muted">Never miss a kickoff or tip-off. Browse your custom schedule for the next 7 days and see exactly where to stream every game.
+        {% if user.is_authenticated %}
+            <a href="{% url 'subscriptions' %}">Update your preferences</a> to customize your experience.
+        {% else %}
+            💡 Want to see only your teams? <a href="{% url 'login' %}">Login</a> or <a href="{% url 'signup' %}">Create an Account</a> to save your services and filter the noise.
+        {% endif %}
+        </p>
     </div>
 </div>
 
