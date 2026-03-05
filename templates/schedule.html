@@ -352,7 +352,7 @@
                                     <div class="team-side">
                                         {% if game.away_rank %}
                                             <div class="team-rank" style="color: {{ away_team_data.alternate|default:'#ffd700' }};">#{{ game.away_rank }}</div>
-                                        {% elif game.home_rank %}
+                                        {% else %}
                                             <div class="team-rank-placeholder"></div>
                                         {% endif %}
                                         {% if game.away_team.logo_url %}
@@ -376,7 +376,7 @@
                                     <div class="team-side">
                                         {% if game.home_rank %}
                                             <div class="team-rank" style="color: {{ home_team_data.alternate|default:'#ffd700' }};">#{{ game.home_rank }}</div>
-                                        {% elif game.away_rank %}
+                                        {% else %}
                                             <div class="team-rank-placeholder"></div>
                                         {% endif %}
                                         {% if game.home_team.logo_url %}
@@ -392,14 +392,16 @@
                                 </div>
                                 
                                 <!-- Round/Leg info for knockout matches -->
-                                {% if game.round_name %}
-                                <div class="round-info">
-                                    {{ game.round_name }}
-                                    {% if game.leg and game.total_legs %}
-                                        <span class="leg-info"> - Leg {{ game.leg }} of {{ game.total_legs }}</span>
+                                <div class="round-info" {% if not game.round_name %}style="visibility: hidden;"{% endif %}>
+                                    {% if game.round_name %}
+                                        {{ game.round_name }}
+                                        {% if game.leg and game.total_legs %}
+                                            <span class="leg-info"> - Leg {{ game.leg }} of {{ game.total_legs }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span>&nbsp;</span>
                                     {% endif %}
                                 </div>
-                                {% endif %}
                                 
                                 <!-- Bottom info bar -->
                                 <div class="game-info-bar">
