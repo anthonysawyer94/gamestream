@@ -8,17 +8,17 @@ from schedules.models import Game, Sport, Team
 from services.models import StreamingService
 
 SPORT_MAPPING = {
-    'nba': {'name': 'Basketball', 'league': 'NBA', 'sport_path': 'basketball/nba'},
-    'mlb': {'name': 'Baseball', 'league': 'MLB', 'sport_path': 'baseball/mlb'},
-    'nhl': {'name': 'Hockey', 'league': 'NHL', 'sport_path': 'hockey/nhl'},
-    'ncaamb': {'name': 'Basketball', 'league': 'NCAA', 'sport_path': 'basketball/mens-college-basketball'},
-    'eng_1': {'name': 'Soccer', 'league': 'Premier League', 'sport_path': 'soccer/eng.1'},
-    'esp_1': {'name': 'Soccer', 'league': 'La Liga', 'sport_path': 'soccer/esp.1'},
-    'ger_1': {'name': 'Soccer', 'league': 'Bundesliga', 'sport_path': 'soccer/ger.1'},
-    'ita_1': {'name': 'Soccer', 'league': 'Serie A', 'sport_path': 'soccer/ita.1'},
-    'fra_1': {'name': 'Soccer', 'league': 'Ligue 1', 'sport_path': 'soccer/fra.1'},
-    'usa_1': {'name': 'Soccer', 'league': 'MLS', 'sport_path': 'soccer/usa.1'},
-    'uefa_champions': {'name': 'Soccer', 'league': 'Champions League', 'sport_path': 'soccer/uefa.champions'},
+    'nba': {'name': 'Basketball', 'league': 'NBA', 'sport_path': 'basketball/nba', 'color': '#1D428A'},
+    'mlb': {'name': 'Baseball', 'league': 'MLB', 'sport_path': 'baseball/mlb', 'color': '#BD3E34'},
+    'nhl': {'name': 'Hockey', 'league': 'NHL', 'sport_path': 'hockey/nhl', 'color': '#154734'},
+    'ncaamb': {'name': 'Basketball', 'league': 'NCAA', 'sport_path': 'basketball/mens-college-basketball', 'color': '#002D72'},
+    'eng_1': {'name': 'Soccer', 'league': 'Premier League', 'sport_path': 'soccer/eng.1', 'color': '#3D195B'},
+    'esp_1': {'name': 'Soccer', 'league': 'La Liga', 'sport_path': 'soccer/esp.1', 'color': '#EE8704'},
+    'ger_1': {'name': 'Soccer', 'league': 'Bundesliga', 'sport_path': 'soccer/ger.1', 'color': '#D20515'},
+    'ita_1': {'name': 'Soccer', 'league': 'Serie A', 'sport_path': 'soccer/ita.1', 'color': '#024494'},
+    'fra_1': {'name': 'Soccer', 'league': 'Ligue 1', 'sport_path': 'soccer/fra.1', 'color': '#091C3E'},
+    'usa_1': {'name': 'Soccer', 'league': 'MLS', 'sport_path': 'soccer/usa.1', 'color': '#335222'},
+    'uefa_champions': {'name': 'Soccer', 'league': 'Champions League', 'sport_path': 'soccer/uefa.champions', 'color': '#0E1F3C'},
 }
 
 BROADCAST_MAPPING = {
@@ -78,8 +78,12 @@ class Command(BaseCommand):
             defaults={
                 'name': SPORT_MAPPING[sport_key]['name'],
                 'league': SPORT_MAPPING[sport_key]['league'],
+                'color': SPORT_MAPPING[sport_key].get('color', ''),
             }
         )
+        if not created and not sport.color:
+            sport.color = SPORT_MAPPING[sport_key].get('color', '')
+            sport.save()
 
         today = timezone.now().date()
         start_date = today - timedelta(days=1)  # Start from yesterday to cover timezone overlap
@@ -178,6 +182,12 @@ class Command(BaseCommand):
                 'name': team_info.get('displayName', 'Unknown'),
                 'abbreviation': team_info.get('abbreviation', 'UNK'),
                 'logo_url': team_info.get('logos', [{}])[0].get('href', '') if team_info.get('logos') else '',
+                'color': team_info.get('color', ''),
+                'alternate_color': team_info.get('alternateColor', ''),
             }
         )
+        if not created and not team.color:
+            team.color = team_info.get('color', '')
+            team.alternate_color = team_info.get('alternateColor', '')
+            team.save()
         return team

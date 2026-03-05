@@ -7,6 +7,7 @@ class Sport(models.Model):
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True)
     league = models.CharField(max_length=50)
+    color = models.CharField(max_length=7, blank=True, default='')
 
     def __str__(self):
         return f"{self.league} - {self.name}"
@@ -16,6 +17,8 @@ class Team(models.Model):
     name = models.CharField(max_length=100)
     abbreviation = models.CharField(max_length=10)
     logo_url = models.URLField(blank=True)
+    color = models.CharField(max_length=7, blank=True, default='')
+    alternate_color = models.CharField(max_length=7, blank=True, default='')
     sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name='teams')
     espn_id = models.CharField(max_length=20)
 

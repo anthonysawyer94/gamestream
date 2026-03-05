@@ -52,6 +52,12 @@
     <div class="alert alert-info">
         <h4>No games found</h4>
         <p>No games match your current filters.</p>
+{% load static %}
+
+{% get_player_team_color game.home_team as home_color %}
+{% get_player_team_color game.away_team as away_color %}
+{% get_league_color game.sport as league_color %}
+
     </div>
 {% else %}
     {% for date, games in games_by_date.items %}
@@ -63,43 +69,71 @@
             
             <div class="row">
                 {% for game in games %}
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card game-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge bg-secondary">{{ game.sport.league }}</span>
-                                    <small class="text-muted game-time" data-utc="{{ game.start_time|date:"c" }}"></small>
+                    {% get_team_colors game.home_team as home_team_data %}
+                    {% get_team_colors game.away_team as away_team_data %}
+                    
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="game-card-{{ game.id }} position-relative overflow-hidden rounded-4" style="min-height: 140px;">
+                            <div class="card-body p-0 position-relative h-100">
+                                <div class="row g-0 h-100">
+                                    <!-- Away Team Side -->
+                                    <div class="col-5 d-flex flex-column justify-content-center align-items-center p-3 position-relative" 
+                                         style="background: linear-gradient(135deg, {{ away_team_data.color|default:game.away_team.sport.color|default:'#1a1d21' }} 0%, {{ away_team_data.alternate|default:away_team_data.color|default:game.away_team.sport.color|default:'#2d3238' }} 100%);">
+                                        <div class="team-logo-container mb-2">
+                                            {% if game.away_team.logo_url %}
+                                                <img src="{{ game.away_team.logo_url }}" alt="{{ game.away_team.abbreviation }}" class="team-logo" style="width: 56px; height: 56px;">
+                                            {% else %}
+                                                <div class="team-initial" style="width: 56px; height: 56px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: white;">
+                                                    {{ game.away_team.abbreviation|slice:":1" }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="team-name fw-bold" style="font-size: 1.1rem; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{ game.away_team.abbreviation }}</div>
+                                            <div class="team-record" style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">AWAY</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Center Divider -->
+                                    <div class="col-2 d-flex flex-column justify-content-center align-items-center p-2 position-relative" style="background: var(--card-bg);">
+                                        <div class="text-center">
+                                            <div class="game-time fw-bold" style="color: var(--accent-blue); font-size: 0.9rem;" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                            <div class="vs-divider my-2" style="color: #6c757d; font-size: 0.7rem;">VS</div>
+                                            {% if game.streaming_service %}
+                                                <span class="badge service-badge badge-{{ game.streaming_service.slug }}" style="font-size: 0.65rem;">
+                                                    {{ game.streaming_service.name }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <!-- Diagonal slash -->
+                                        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;">
+                                            <div style="position: absolute; top: -20%; left: -50%; width: 200%; height: 60%; background: linear-gradient(135deg, transparent 45%, rgba(255,255,255,0.1) 50%, transparent 55%); transform: rotate(-15deg);"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Home Team Side -->
+                                    <div class="col-5 d-flex flex-column justify-content-center align-items-center p-3 position-relative"
+                                         style="background: linear-gradient(135deg, {{ home_team_data.color|default:game.home_team.sport.color|default:'#1a1d21' }} 0%, {{ home_team_data.alternate|default:home_team_data.color|default:game.home_team.sport.color|default:'#2d3238' }} 100%);">
+                                        <div class="team-logo-container mb-2">
+                                            {% if game.home_team.logo_url %}
+                                                <img src="{{ game.home_team.logo_url }}" alt="{{ game.home_team.abbreviation }}" class="team-logo" style="width: 56px; height: 56px;">
+                                            {% else %}
+                                                <div class="team-initial" style="width: 56px; height: 56px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: white;">
+                                                    {{ game.home_team.abbreviation|slice:":1" }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="team-name fw-bold" style="font-size: 1.1rem; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{ game.home_team.abbreviation }}</div>
+                                            <div class="team-record" style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">HOME</div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <div class="text-center flex-fill">
-                                        {% if game.away_team.logo_url %}
-                                            <img src="{{ game.away_team.logo_url }}" alt="{{ game.away_team.abbreviation }}" class="team-logo">
-                                        {% endif %}
-                                        <div class="fw-bold">{{ game.away_team.abbreviation }}</div>
-                                    </div>
-                                    <div class="text-muted px-2">@</div>
-                                    <div class="text-center flex-fill">
-                                        {% if game.home_team.logo_url %}
-                                            <img src="{{ game.home_team.logo_url }}" alt="{{ game.home_team.abbreviation }}" class="team-logo">
-                                        {% endif %}
-                                        <div class="fw-bold">{{ game.home_team.abbreviation }}</div>
-                                    </div>
+                                <!-- League badge overlay -->
+                                <div class="position-absolute" style="top: 8px; left: 8px;">
+                                    <span class="badge" style="background: rgba(0,0,0,0.6); color: white; font-size: 0.65rem; backdrop-filter: blur(4px);">{{ game.sport.league }}</span>
                                 </div>
-                                
-                                {% if game.broadcast or game.streaming_service %}
-                                    <div class="mt-2">
-                                        {% if game.streaming_service %}
-                                            <span class="badge service-badge badge-{{ game.streaming_service.slug }}">
-                                                {{ game.streaming_service.name }}
-                                            </span>
-                                        {% elif game.broadcast %}
-                                            <span class="badge service-badge badge-broadcast">
-                                                {{ game.broadcast }}
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
