@@ -51,6 +51,9 @@ jobs:
 
             # 6. Set up daily cron job to fetch schedule (runs at 6am daily)
             (crontab -l 2>/dev/null | grep -v "fetch_schedule"; echo "0 6 * * * cd /opt/gamestream && /usr/local/bin/docker-compose exec -T web python manage.py fetch_schedule --days 8 >> /var/log/fetch_schedule.log 2>&1") | crontab -
+
+            # 7. Clean up games without streaming services
+            sudo docker-compose exec -T web python manage.py shell -c "from schedules.models import Game; Game.objects.filter(streaming_service__isnull=True).delete()"
           EOF
 
       - name: Cleanup SSH key

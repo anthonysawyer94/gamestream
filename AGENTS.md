@@ -40,29 +40,40 @@ python3 manage.py makemigrations
 python3 manage.py migrate
 python3 manage.py showmigrations
 
-# Management commands
-python3 manage.py seed_services
-python3 manage.py fetch_schedule
-python3 manage.py fetch_schedule --days 14
+## Database & Management Commands
+
+**Important:** All database operations should be run on **EC2 production**, not locally.
+
+```bash
+# SSH into EC2
+ssh <username>@<host>
+
+# Navigate to project directory
+cd /opt/gamestream
+
+# Run management commands (inside Docker container)
+docker-compose exec -T web python manage.py <command>
+
+# Common commands:
+docker-compose exec -T web python manage.py migrate
+docker-compose exec -T web python manage.py fetch_schedule --days 8
+docker-compose exec -T web python manage.py seed_services
 ```
 
 ## Fetching Schedule
 
-After DB changes (new sports, models, etc.), run fetch_schedule to populate games:
+After DB changes (new sports, models, etc.), run fetch_schedule on EC2:
 
 ```bash
-# Local
-python3 manage.py fetch_schedule --days 7
-
-# Production (EC2)
-docker-compose exec -T web python manage.py fetch_schedule --days 7
+# On EC2
+docker-compose exec -T web python manage.py fetch_schedule --days 8
 ```
 
 The command:
 - Fetches games for all configured sports (NBA, MLB, NHL, NCAA, soccer leagues)
 - Only saves games with known streaming services (filters OTA broadcasts)
 - Automatically deletes games older than 2 days
-- Run manually after DB changes, or set up a daily cron job on EC2
+- Set up as daily cron job on EC2 (runs at 6am)
 
 ## Code Style Guidelines
 
