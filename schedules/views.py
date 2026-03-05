@@ -19,7 +19,7 @@ def home(request):
     games = Game.objects.filter(
         start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
         start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))
-    ).select_related('home_team', 'away_team', 'sport', 'streaming_service').order_by('start_time')
+    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by('start_time')
 
     cutoff_time = timezone.now() - timedelta(hours=5)
     games = games.exclude(
@@ -33,9 +33,9 @@ def home(request):
             request.user.subscriptions.values_list('streaming_service_id', flat=True)
         )
         games = games.filter(
-            Q(streaming_service_id__in=user_services) | 
-            Q(streaming_service__isnull=True)
-        )
+            Q(streaming_services__id__in=user_services) | 
+            Q(streaming_services__isnull=True)
+        ).distinct()
 
     sports = Sport.objects.all()
     services = StreamingService.objects.all()
@@ -81,7 +81,7 @@ def schedule(request):
     games = Game.objects.filter(
         start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
         start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))
-    ).select_related('home_team', 'away_team', 'sport', 'streaming_service').order_by('start_time')
+    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by('start_time')
 
     cutoff_time = timezone.now() - timedelta(hours=5)
     games = games.exclude(
@@ -95,9 +95,9 @@ def schedule(request):
         games = games.filter(sport_id=sport_id)
 
     if service_id == 'my_services' and user_services:
-        games = games.filter(streaming_service_id__in=user_services)
+        games = games.filter(streaming_services__id__in=user_services).distinct()
     elif service_id and service_id != 'all':
-        games = games.filter(streaming_service_id=service_id)
+        games = games.filter(streaming_services__id=service_id).distinct()
 
     sports = Sport.objects.all()
     services = StreamingService.objects.all()

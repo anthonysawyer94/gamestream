@@ -43,12 +43,10 @@ class Game(models.Model):
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_games')
     start_time = models.DateTimeField()
     broadcast = models.CharField(max_length=200, blank=True)
-    streaming_service = models.ForeignKey(
-        StreamingService, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+    streaming_services = models.ManyToManyField(
+        StreamingService,
+        related_name='games_all',
         blank=True,
-        related_name='games'
     )
     espn_id = models.CharField(max_length=20)
     status = models.CharField(max_length=20, default='scheduled')

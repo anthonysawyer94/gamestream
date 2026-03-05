@@ -156,20 +156,17 @@ class Command(BaseCommand):
                     'names', []) if competition.get('broadcasts') else []
                 broadcast = broadcast_names[0] if broadcast_names else ''
 
-                streaming_service = None
+                streaming_services = []
                 if broadcast_names:
                     for b in broadcast_names:
                         for key, slug in BROADCAST_MAPPING.items():
                             if key and key.lower() in b.lower():
-                                streaming_service = StreamingService.objects.filter(
+                                service = StreamingService.objects.filter(
                                     slug=slug).first()
-                                if streaming_service:
-                                    broadcast = b
-                                    break
-                        if streaming_service:
-                            break
+                                if service and service not in streaming_services:
+                                    streaming_services.append(service)
 
-                if not streaming_service:
+                if not streaming_services:
                     continue
 
                 status = competition.get('status', {}).get(
@@ -216,7 +213,6 @@ class Command(BaseCommand):
                             'away_team': away_team,
                             'start_time': start_time,
                             'broadcast': broadcast,
-                            'streaming_service': streaming_service,
                             'status': status,
                             'round_name': round_name,
                             'leg': leg,
@@ -225,6 +221,8 @@ class Command(BaseCommand):
                             'away_rank': away_rank,
                         }
                     )
+                    if streaming_services:
+                        game.streaming_services.set(streaming_services)
 
             except Exception as e:
                 self.stdout.write(self.style.WARNING(
@@ -413,18 +411,16 @@ class Command(BaseCommand):
                         if short_name:
                             broadcast_names.append(short_name)
 
-                    streaming_service = None
+                    streaming_services = []
                     for b in broadcast_names:
                         for key, slug in BROADCAST_MAPPING.items():
                             if key and key.lower() in b.lower():
-                                streaming_service = StreamingService.objects.filter(
+                                service = StreamingService.objects.filter(
                                     slug=slug).first()
-                                if streaming_service:
-                                    break
-                        if streaming_service:
-                            break
+                                if service and service not in streaming_services:
+                                    streaming_services.append(service)
 
-                    if not streaming_service:
+                    if not streaming_services:
                         continue
 
                     start_time_str = competition.get('date')
@@ -456,12 +452,13 @@ class Command(BaseCommand):
                             'away_team': fighter2_team,
                             'start_time': start_time,
                             'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
-                            'streaming_service': streaming_service,
                             'status': status_state,
                             'round_name': round_label,
                             'card_type': card_type,
                         }
                     )
+                    if streaming_services:
+                        game.streaming_services.set(streaming_services)
 
                 except Exception as e:
                     self.stdout.write(self.style.WARNING(

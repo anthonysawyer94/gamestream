@@ -499,11 +499,11 @@
                                 <!-- Bottom info bar -->
                                 <div class="game-info-bar">
                                     <span class="league-badge">UFC 🥊</span>
-                                    {% if game.streaming_service %}
-                                        <span class="service-badge badge-{{ game.streaming_service.slug }}">
-                                            {{ game.streaming_service.name }}
+                                    {% for service in game.streaming_services.all %}
+                                        <span class="service-badge badge-{{ service.slug }}">
+                                            {{ service.name }}
                                         </span>
-                                    {% endif %}
+                                    {% endfor %}
                                     <button class="btn-expand" onclick="toggleUfcDetails(this)">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -618,11 +618,11 @@
                                     <span class="league-badge">
                                         {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% elif game.sport.league == 'La Liga' %}La Liga ⚽{% elif game.sport.league == 'Bundesliga' %}Bundesliga ⚽{% elif game.sport.league == 'Serie A' %}Serie A ⚽{% elif game.sport.league == 'Champions League' %}Champions League 🏆{% elif game.sport.league == 'Europa League' %}Europa League 🌟{% elif game.sport.league == 'World Cup' %}World Cup 🌍{% elif game.sport.league == 'UFC' %}UFC 🥊{% elif game.sport.league == 'WTA' %}WTA 🎾{% elif game.sport.league == 'ATP' %}ATP 🎾{% else %}{{ game.sport.league }}{% endif %}
                                     </span>
-                                    {% if game.streaming_service %}
-                                        <span class="service-badge badge-{{ game.streaming_service.slug }}">
-                                            {{ game.streaming_service.name }}
+                                    {% for service in game.streaming_services.all %}
+                                        <span class="service-badge badge-{{ service.slug }}">
+                                            {{ service.name }}
                                         </span>
-                                    {% endif %}
+                                    {% endfor %}
                                 </div>
                             </div>
                         {% endif %}
