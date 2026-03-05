@@ -222,6 +222,15 @@ class Command(BaseCommand):
                 'alternate_color': team_info.get('alternateColor', ''),
             }
         )
+        
+        # Extract record from team_data - take first record with summary
+        record = ''
+        records = team_data.get('records', [])
+        for rec in records:
+            if rec.get('summary'):
+                record = rec.get('summary', '')
+                break
+        
         if not created:
             # Update missing data for existing teams
             updated = False
@@ -233,6 +242,10 @@ class Command(BaseCommand):
                 updated = True
             if not team.alternate_color and team_info.get('alternateColor'):
                 team.alternate_color = team_info.get('alternateColor', '')
+                updated = True
+            # Always update record from API
+            if record:
+                team.record = record
                 updated = True
             if updated:
                 team.save()

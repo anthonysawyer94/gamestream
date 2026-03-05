@@ -21,6 +21,7 @@ class Team(models.Model):
     alternate_color = models.CharField(max_length=7, blank=True, default='')
     sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name='teams')
     espn_id = models.CharField(max_length=20)
+    record = models.CharField(max_length=15, blank=True, default='')
 
     class Meta:
         unique_together = ('sport', 'espn_id')

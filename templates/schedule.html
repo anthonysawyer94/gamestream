@@ -146,6 +146,15 @@
         margin-bottom: 4px;
     }
     
+    .team-record {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.75);
+        font-weight: 600;
+        text-align: center;
+        width: 100%;
+        margin-top: 4px;
+    }
+    
     /* VS divider */
     .vs-divider {
         display: flex;
@@ -364,6 +373,7 @@
                                         {% endif %}
                                         <div class="team-name">{{ game.away_team.abbreviation }}</div>
                                         <div class="team-type">AWAY</div>
+                                        <div class="team-record">{% if game.away_team.record %}{{ game.away_team.record }}{% else %}&nbsp;{% endif %}</div>
                                     </div>
                                     
                                     <!-- VS Divider -->
@@ -388,6 +398,7 @@
                                         {% endif %}
                                         <div class="team-name">{{ game.home_team.abbreviation }}</div>
                                         <div class="team-type">HOME</div>
+                                        <div class="team-record">{% if game.home_team.record %}{{ game.home_team.record }}{% else %}&nbsp;{% endif %}</div>
                                     </div>
                                 </div>
                                 
