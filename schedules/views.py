@@ -4,7 +4,8 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 
-from services.models import StreamingService, UserSubscription
+from services.models import (StreamingService, UserSportPreference,
+                             UserSubscription)
 
 from .models import Game, Sport
 
@@ -80,13 +81,19 @@ def schedule(request):
         games = games.filter(sport_id=sport_id)
 
     user_services = []
+    user_sports = []
     if request.user.is_authenticated:
         user_services = list(
             request.user.subscriptions.values_list('streaming_service_id', flat=True)
         )
+        user_sports = list(
+            request.user.sport_preferences.values_list('sport_id', flat=True)
+        )
 
     if filter_type == 'my_selected' and user_services:
         games = games.filter(streaming_service_id__in=user_services)
+    elif filter_type == 'my_sports' and user_sports:
+        games = games.filter(sport_id__in=user_sports)
     elif filter_type == 'all_streaming':
         games = games.exclude(streaming_service__isnull=True)
     elif filter_type == 'service' and service_id:
@@ -111,6 +118,7 @@ def schedule(request):
         'selected_service': service_id,
         'filter_type': filter_type,
         'user_services': user_services,
+        'user_sports': user_sports,
         'today': timezone.localtime(timezone.now()).date(),
     }
     return render(request, 'schedule.html', context)

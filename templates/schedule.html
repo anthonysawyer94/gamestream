@@ -27,8 +27,11 @@
             <div class="col-md-3">
                 <label class="form-label">Streaming Service</label>
                 <select name="filter_type" class="form-select">
+                    {% if user.is_authenticated and user_sports %}
+                        <option value="my_sports" {% if filter_type == 'my_sports' %}selected{% endif %}>My Sports Leagues</option>
+                    {% endif %}
                     {% if user.is_authenticated and user_services %}
-                        <option value="my_selected" {% if filter_type == 'my_selected' %}selected{% endif %}>My Selected</option>
+                        <option value="my_selected" {% if filter_type == 'my_selected' %}selected{% endif %}>My Streaming Services</option>
                     {% endif %}
                     <option value="all_streaming" {% if filter_type == 'all_streaming' %}selected{% endif %}>All Streaming Platforms</option>
                     <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Games</option>

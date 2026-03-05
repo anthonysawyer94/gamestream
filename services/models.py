@@ -25,3 +25,14 @@ class UserSubscription(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.streaming_service.name}"
+
+
+class UserSportPreference(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sport_preferences')
+    sport = models.ForeignKey('schedules.Sport', on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'sport')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.sport.league}"
