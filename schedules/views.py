@@ -77,9 +77,6 @@ def schedule(request):
         start_time__lt=cutoff_time
     )
 
-    if sport_id:
-        games = games.filter(sport_id=sport_id)
-
     user_services = []
     user_sports = []
     if request.user.is_authenticated:
@@ -90,10 +87,13 @@ def schedule(request):
             request.user.sport_preferences.values_list('sport_id', flat=True)
         )
 
+    if sport_id == 'my_sports' and user_sports:
+        games = games.filter(sport_id__in=user_sports)
+    elif sport_id and sport_id != 'my_sports':
+        games = games.filter(sport_id=sport_id)
+
     if filter_type == 'my_selected' and user_services:
         games = games.filter(streaming_service_id__in=user_services)
-    elif filter_type == 'my_sports' and user_sports:
-        games = games.filter(sport_id__in=user_sports)
     elif filter_type == 'all_streaming':
         games = games.exclude(streaming_service__isnull=True)
     elif filter_type == 'service' and service_id:

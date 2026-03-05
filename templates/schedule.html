@@ -16,6 +16,9 @@
             <div class="col-md-3">
                 <label class="form-label">Sport</label>
                 <select name="sport" class="form-select">
+                    {% if user.is_authenticated and user_sports %}
+                        <option value="my_sports" {% if selected_sport == 'my_sports' %}selected{% endif %}>My Sports Leagues</option>
+                    {% endif %}
                     <option value="">All Sports</option>
                     {% for sport in sports %}
                         <option value="{{ sport.id }}" {% if selected_sport == sport.id|stringformat:"s" %}selected{% endif %}>
@@ -27,9 +30,6 @@
             <div class="col-md-3">
                 <label class="form-label">Streaming Service</label>
                 <select name="filter_type" class="form-select">
-                    {% if user.is_authenticated and user_sports %}
-                        <option value="my_sports" {% if filter_type == 'my_sports' %}selected{% endif %}>My Sports Leagues</option>
-                    {% endif %}
                     {% if user.is_authenticated and user_services %}
                         <option value="my_selected" {% if filter_type == 'my_selected' %}selected{% endif %}>My Streaming Services</option>
                     {% endif %}
