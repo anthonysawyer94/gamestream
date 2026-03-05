@@ -16,10 +16,11 @@ SPORT_MAPPING = {
     'esp_1': {'name': 'Soccer', 'league': 'La Liga', 'sport_path': 'soccer/esp.1', 'color': '#EE8704'},
     'ger_1': {'name': 'Soccer', 'league': 'Bundesliga', 'sport_path': 'soccer/ger.1', 'color': '#D20515'},
     'ita_1': {'name': 'Soccer', 'league': 'Serie A', 'sport_path': 'soccer/ita.1', 'color': '#024494'},
-    'fra_1': {'name': 'Soccer', 'league': 'Ligue 1', 'sport_path': 'soccer/fra.1', 'color': '#091C3E'},
+    # 'fra_1': {'name': 'Soccer', 'league': 'Ligue 1', 'sport_path': 'soccer/fra.1', 'color': '#091C3E'},
     'usa_1': {'name': 'Soccer', 'league': 'MLS', 'sport_path': 'soccer/usa.1', 'color': '#335222'},
     'uefa_champions': {'name': 'Soccer', 'league': 'Champions League', 'sport_path': 'soccer/uefa.champions', 'color': '#0E1F3C'},
     'uefa_europa': {'name': 'Soccer', 'league': 'Europa League', 'sport_path': 'soccer/uefa.europa', 'color': '#FF6600'},
+    'fifa_world': {'name': 'Soccer', 'league': 'World Cup', 'sport_path': 'soccer/fifa.world', 'color': '#1B1B1B'},
     'ufc': {'name': 'MMA', 'league': 'UFC', 'sport_path': 'mma/ufc', 'color': '#D00000'},
 
     'tennis_wta': {'name': 'Tennis', 'league': 'WTA', 'sport_path': 'tennis/wta', 'color': '#FF69B4'},
@@ -35,8 +36,8 @@ BROADCAST_MAPPING = {
     'TBS': None,
     'NBA TV': None,
     'MLB Network': None,
-    'FOX': None,
-    'FS1': None,
+    'FOX': 'fubotv',
+    'FS1': 'fubotv',
     'Amazon': 'prime_video',
     'Prime Video': 'prime_video',
     'Netflix': 'netflix',
@@ -68,14 +69,17 @@ class Command(BaseCommand):
 
         for sport_key, sport_data in SPORT_MAPPING.items():
             self.stdout.write(f"Fetching {sport_data['league']} schedule...")
-            self.fetch_sport_schedule(sport_data['sport_path'], sport_key, days)
+            self.fetch_sport_schedule(
+                sport_data['sport_path'], sport_key, days)
 
         cutoff = timezone.now() - timedelta(days=2)
         deleted_count = Game.objects.filter(start_time__lt=cutoff).delete()[0]
         if deleted_count:
-            self.stdout.write(self.style.WARNING(f"Deleted {deleted_count} games older than 2 days"))
+            self.stdout.write(self.style.WARNING(
+                f"Deleted {deleted_count} games older than 2 days"))
 
-        self.stdout.write(self.style.SUCCESS('Successfully fetched sports schedule'))
+        self.stdout.write(self.style.SUCCESS(
+            'Successfully fetched sports schedule'))
 
     def fetch_sport_schedule(self, sport_path, sport_key, days):
         # Check if this is a UFC/MMA sport - handle differently (individual athletes, not teams)
@@ -83,6 +87,10 @@ class Command(BaseCommand):
             self.fetch_ufc_schedule(sport_path, sport_key, days)
             return
         
+        # Fetch more days for World Cup (tournament is in June 2026)
+        if sport_key == 'fifa_world':
+            days = 120  # Fetch ~4 months ahead for World Cup
+
         sport, created = Sport.objects.get_or_create(
             slug=sport_key,
             defaults={
@@ -96,13 +104,14 @@ class Command(BaseCommand):
             sport.save()
 
         today = timezone.now().date()
-        start_date = today - timedelta(days=1)  # Start from yesterday to cover timezone overlap
+        # Start from yesterday to cover timezone overlap
+        start_date = today - timedelta(days=1)
         for day_offset in range(days):
             date = start_date + timedelta(days=day_offset)
             date_str = date.strftime('%Y%m%d')
 
             url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
-            
+
             try:
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
@@ -112,7 +121,8 @@ class Command(BaseCommand):
                     self.process_events(data['events'], sport)
 
             except requests.RequestException as e:
-                self.stdout.write(self.style.WARNING(f"Error fetching {date_str}: {e}"))
+                self.stdout.write(self.style.WARNING(
+                    f"Error fetching {date_str}: {e}"))
                 continue
 
     def process_events(self, events, sport):
@@ -124,8 +134,10 @@ class Command(BaseCommand):
                 if len(competitors) < 2:
                     continue
 
-                home_team_data = next((c for c in competitors if c.get('homeAway') == 'home'), None)
-                away_team_data = next((c for c in competitors if c.get('homeAway') == 'away'), None)
+                home_team_data = next(
+                    (c for c in competitors if c.get('homeAway') == 'home'), None)
+                away_team_data = next(
+                    (c for c in competitors if c.get('homeAway') == 'away'), None)
 
                 if not home_team_data or not away_team_data:
                     continue
@@ -135,11 +147,13 @@ class Command(BaseCommand):
 
                 start_time_str = competition.get('date')
                 if start_time_str:
-                    start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                    start_time = datetime.fromisoformat(
+                        start_time_str.replace('Z', '+00:00'))
                 else:
                     continue
 
-                broadcast_names = competition.get('broadcasts', [{}])[0].get('names', []) if competition.get('broadcasts') else []
+                broadcast_names = competition.get('broadcasts', [{}])[0].get(
+                    'names', []) if competition.get('broadcasts') else []
                 broadcast = broadcast_names[0] if broadcast_names else ''
 
                 streaming_service = None
@@ -147,7 +161,8 @@ class Command(BaseCommand):
                     for b in broadcast_names:
                         for key, slug in BROADCAST_MAPPING.items():
                             if key and key.lower() in b.lower():
-                                streaming_service = StreamingService.objects.filter(slug=slug).first()
+                                streaming_service = StreamingService.objects.filter(
+                                    slug=slug).first()
                                 if streaming_service:
                                     broadcast = b
                                     break
@@ -157,7 +172,8 @@ class Command(BaseCommand):
                 if not streaming_service:
                     continue
 
-                status = competition.get('status', {}).get('type', {}).get('state', 'scheduled')
+                status = competition.get('status', {}).get(
+                    'type', {}).get('state', 'scheduled')
 
                 round_name = ''
                 leg = None
@@ -166,7 +182,7 @@ class Command(BaseCommand):
                 if series:
                     round_name = series.get('title', '')
                     total_legs = series.get('totalCompetitions')
-                
+
                 # Extract round info from notes (e.g., NCAA tournament rounds)
                 if not round_name:
                     notes = competition.get('notes', [])
@@ -174,14 +190,16 @@ class Command(BaseCommand):
                         note = notes[0].get('headline', '')
                         if note:
                             round_name = note
-                
+
                 leg_data = competition.get('leg', {})
                 if leg_data:
                     leg = leg_data.get('value')
 
                 # Extract team rankings
-                home_rank = home_team_data.get('curatedRank', {}).get('current')
-                away_rank = away_team_data.get('curatedRank', {}).get('current')
+                home_rank = home_team_data.get(
+                    'curatedRank', {}).get('current')
+                away_rank = away_team_data.get(
+                    'curatedRank', {}).get('current')
                 # Only use ranking if it's a valid number (not 99 which means unranked)
                 if home_rank and home_rank > 50:
                     home_rank = None
@@ -209,7 +227,8 @@ class Command(BaseCommand):
                     )
 
             except Exception as e:
-                self.stdout.write(self.style.WARNING(f"Error processing event: {e}"))
+                self.stdout.write(self.style.WARNING(
+                    f"Error processing event: {e}"))
                 continue
 
     def get_or_create_team(self, team_data, sport):
@@ -230,7 +249,7 @@ class Command(BaseCommand):
                 'alternate_color': team_info.get('alternateColor', ''),
             }
         )
-        
+
         # Extract record from team_data - take first record with summary
         record = ''
         records = team_data.get('records', [])
@@ -238,7 +257,7 @@ class Command(BaseCommand):
             if rec.get('summary'):
                 record = rec.get('summary', '')
                 break
-        
+
         if not created:
             # Update missing data for existing teams
             updated = False
@@ -272,13 +291,13 @@ class Command(BaseCommand):
 
         today = timezone.now().date()
         start_date = today - timedelta(days=1)
-        
+
         for day_offset in range(days):
             date = start_date + timedelta(days=day_offset)
             date_str = date.strftime('%Y%m%d')
 
             url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
-            
+
             try:
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
@@ -288,7 +307,8 @@ class Command(BaseCommand):
                     self.process_ufc_events(data['events'], sport)
 
             except requests.RequestException as e:
-                self.stdout.write(self.style.WARNING(f"Error fetching UFC {date_str}: {e}"))
+                self.stdout.write(self.style.WARNING(
+                    f"Error fetching UFC {date_str}: {e}"))
                 continue
 
     def process_ufc_events(self, events, sport):
@@ -337,8 +357,10 @@ class Command(BaseCommand):
                     fighter1_athlete_id = fighter1_data.get('id')
                     fighter2_athlete_id = fighter2_data.get('id')
 
-                    fighter1_details = self.fetch_fighter_details(fighter1_athlete_id)
-                    fighter2_details = self.fetch_fighter_details(fighter2_athlete_id)
+                    fighter1_details = self.fetch_fighter_details(
+                        fighter1_athlete_id)
+                    fighter2_details = self.fetch_fighter_details(
+                        fighter2_athlete_id)
 
                     unique_fighter_id = f"ufc_{event_id}_{competition_id}"
 
@@ -378,8 +400,10 @@ class Command(BaseCommand):
                         }
                     )
 
-                    self.update_fighter_team(fighter1_team, fighter1_details, fighter1_record)
-                    self.update_fighter_team(fighter2_team, fighter2_details, fighter2_record)
+                    self.update_fighter_team(
+                        fighter1_team, fighter1_details, fighter1_record)
+                    self.update_fighter_team(
+                        fighter2_team, fighter2_details, fighter2_record)
 
                     broadcast_names = []
                     geo_broadcasts = competition.get('geoBroadcasts', [])
@@ -393,7 +417,8 @@ class Command(BaseCommand):
                     for b in broadcast_names:
                         for key, slug in BROADCAST_MAPPING.items():
                             if key and key.lower() in b.lower():
-                                streaming_service = StreamingService.objects.filter(slug=slug).first()
+                                streaming_service = StreamingService.objects.filter(
+                                    slug=slug).first()
                                 if streaming_service:
                                     break
                         if streaming_service:
@@ -404,14 +429,16 @@ class Command(BaseCommand):
 
                     start_time_str = competition.get('date')
                     if start_time_str:
-                        start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                        start_time = datetime.fromisoformat(
+                            start_time_str.replace('Z', '+00:00'))
                     else:
                         continue
 
                     # Determine card type based on format (5 rounds = main event)
                     card_type = ''
                     format_data = competition.get('format', {})
-                    periods = format_data.get('regulation', {}).get('periods', 3)
+                    periods = format_data.get(
+                        'regulation', {}).get('periods', 3)
                     if periods == 5:
                         card_type = 'main_card'
                     else:
@@ -437,7 +464,8 @@ class Command(BaseCommand):
                     )
 
                 except Exception as e:
-                    self.stdout.write(self.style.WARNING(f"Error processing UFC fight: {e}"))
+                    self.stdout.write(self.style.WARNING(
+                        f"Error processing UFC fight: {e}"))
                     continue
 
     def fetch_fighter_details(self, athlete_id):
