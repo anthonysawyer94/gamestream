@@ -44,6 +44,9 @@ class Game(models.Model):
     )
     espn_id = models.CharField(max_length=20)
     status = models.CharField(max_length=20, default='scheduled')
+    round_name = models.CharField(max_length=50, blank=True, default='')
+    leg = models.PositiveIntegerField(null=True, blank=True)
+    total_legs = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ['start_time']

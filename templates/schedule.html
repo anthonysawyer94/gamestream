@@ -172,6 +172,23 @@
         margin-left: 4px;
     }
     
+    .round-info {
+        text-align: center;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.9);
+        font-weight: 600;
+        margin-top: 8px;
+        padding: 4px 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        display: inline-block;
+    }
+    
+    .leg-info {
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
     /* Bottom info bar */
     .game-info-bar {
         display: flex;
@@ -351,10 +368,20 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Round/Leg info for knockout matches -->
+                                {% if game.round_name %}
+                                <div class="round-info">
+                                    {{ game.round_name }}
+                                    {% if game.leg and game.total_legs %}
+                                        <span class="leg-info"> - Leg {{ game.leg }} of {{ game.total_legs }}</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
                                 <!-- Bottom info bar -->
                                 <div class="game-info-bar">
                                     <span class="league-badge">
-                                        {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% else %}{{ game.sport.league }}{% endif %}
+                                        {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% elif game.sport.league == 'Champions League' %}Champions League 🏆{% elif game.sport.league == 'Europa League' %}Europa League 🌟{% elif game.sport.league == 'Conference League' %}Conference League 🎯{% else %}{{ game.sport.league }}{% endif %}
                                     </span>
                                     {% if game.streaming_service %}
                                         <span class="service-badge badge-{{ game.streaming_service.slug }}">

@@ -19,6 +19,8 @@ SPORT_MAPPING = {
     'fra_1': {'name': 'Soccer', 'league': 'Ligue 1', 'sport_path': 'soccer/fra.1', 'color': '#091C3E'},
     'usa_1': {'name': 'Soccer', 'league': 'MLS', 'sport_path': 'soccer/usa.1', 'color': '#335222'},
     'uefa_champions': {'name': 'Soccer', 'league': 'Champions League', 'sport_path': 'soccer/uefa.champions', 'color': '#0E1F3C'},
+    'uefa_europa': {'name': 'Soccer', 'league': 'Europa League', 'sport_path': 'soccer/uefa.europa', 'color': '#FF6600'},
+    'uefa_conference': {'name': 'Soccer', 'league': 'Conference League', 'sport_path': 'soccer/uefa.conference', 'color': '#4B0082'},
 }
 
 BROADCAST_MAPPING = {
@@ -149,6 +151,17 @@ class Command(BaseCommand):
 
                 status = competition.get('status', {}).get('type', {}).get('state', 'scheduled')
 
+                round_name = ''
+                leg = None
+                total_legs = None
+                series = competition.get('series', {})
+                if series:
+                    round_name = series.get('title', '')
+                    total_legs = series.get('totalCompetitions')
+                leg_data = competition.get('leg', {})
+                if leg_data:
+                    leg = leg_data.get('value')
+
                 espn_event_id = event.get('id')
                 if espn_event_id:
                     game, created = Game.objects.update_or_create(
@@ -161,6 +174,9 @@ class Command(BaseCommand):
                             'broadcast': broadcast,
                             'streaming_service': streaming_service,
                             'status': status,
+                            'round_name': round_name,
+                            'leg': leg,
+                            'total_legs': total_legs,
                         }
                     )
 
