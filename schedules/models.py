@@ -50,6 +50,7 @@ class Game(models.Model):
     total_legs = models.PositiveIntegerField(null=True, blank=True)
     home_rank = models.PositiveIntegerField(null=True, blank=True)
     away_rank = models.PositiveIntegerField(null=True, blank=True)
+    leaderboard = models.TextField(blank=True, default='')
 
     class Meta:
         ordering = ['start_time']

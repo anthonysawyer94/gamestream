@@ -211,6 +211,37 @@
         opacity: 0.8;
     }
     
+    /* Golf tournament styles */
+    .golf-section {
+        text-align: center;
+        padding: 8px 0;
+    }
+    
+    .golf-tournament-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: white;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        margin-bottom: 8px;
+    }
+    
+    .golf-leaderboard {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin: 0 auto;
+        max-width: 90%;
+    }
+    
+    .golf-leaderboard pre {
+        margin: 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.4;
+        white-space: pre-wrap;
+    }
+    
     /* Bottom info bar */
     .game-info-bar {
         display: flex;
@@ -401,6 +432,18 @@
                                         <div class="team-record">{% if game.home_team.record %}{{ game.home_team.record }}{% else %}&nbsp;{% endif %}</div>
                                     </div>
                                 </div>
+                                
+                                <!-- Golf tournament display -->
+                                {% if game.sport.league == 'PGA Tour' or game.sport.league == 'LIV Golf' %}
+                                <div class="golf-section">
+                                    <div class="golf-tournament-name">{{ game.home_team.name }}</div>
+                                    {% if game.leaderboard %}
+                                    <div class="golf-leaderboard">
+                                        <pre>{{ game.leaderboard }}</pre>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
                                 
                                 <!-- Round/Leg info for knockout matches -->
                                 <div class="round-info" {% if not game.round_name %}style="visibility: hidden;"{% endif %}>
