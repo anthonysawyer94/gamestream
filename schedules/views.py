@@ -59,8 +59,8 @@ def home(request):
 
 
 def schedule(request):
-    today = timezone.localtime(timezone.now()).date()
-    week_later = today + timedelta(days=7)
+    today = timezone.localtime(timezone.now()).date() - timedelta(days=1)
+    week_later = today + timedelta(days=8)
 
     user_services = []
     user_sports = []
