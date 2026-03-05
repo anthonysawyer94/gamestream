@@ -288,7 +288,7 @@
         {% if user.is_authenticated %}
             <a href="{% url 'subscriptions' %}">Update your preferences</a> to customize your experience.
         {% else %}
-            💡 Want to see only your teams? <a href="{% url 'login' %}">Login</a> or <a href="{% url 'signup' %}">Create an Account</a> to save your services and filter the noise.
+            💡 Want to see only your teams and subscriptions? <a href="{% url 'login' %}">Login</a> or <a href="{% url 'signup' %}">Create an Account</a> to save your preferences and filter the noise.
         {% endif %}
         </p>
     </div>
