@@ -21,6 +21,11 @@ SPORT_MAPPING = {
     'uefa_champions': {'name': 'Soccer', 'league': 'Champions League', 'sport_path': 'soccer/uefa.champions', 'color': '#0E1F3C'},
     'uefa_europa': {'name': 'Soccer', 'league': 'Europa League', 'sport_path': 'soccer/uefa.europa', 'color': '#FF6600'},
     'uefa_conference': {'name': 'Soccer', 'league': 'Conference League', 'sport_path': 'soccer/uefa.conference', 'color': '#4B0082'},
+    'ufc': {'name': 'MMA', 'league': 'UFC', 'sport_path': 'mma/ufc', 'color': '#D00000'},
+    'golf_pga': {'name': 'Golf', 'league': 'PGA Tour', 'sport_path': 'golf/pga', 'color': '#006400'},
+    'golf_liv': {'name': 'Golf', 'league': 'LIV Golf', 'sport_path': 'golf/liv', 'color': '#000000'},
+    'tennis_wta': {'name': 'Tennis', 'league': 'WTA', 'sport_path': 'tennis/wta', 'color': '#FF69B4'},
+    'tennis_atp': {'name': 'Tennis', 'league': 'ATP', 'sport_path': 'tennis/atp', 'color': '#4169E1'},
 }
 
 BROADCAST_MAPPING = {
