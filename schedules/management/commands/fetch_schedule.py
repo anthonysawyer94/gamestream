@@ -158,9 +158,27 @@ class Command(BaseCommand):
                 if series:
                     round_name = series.get('title', '')
                     total_legs = series.get('totalCompetitions')
+                
+                # Extract round info from notes (e.g., NCAA tournament rounds)
+                if not round_name:
+                    notes = competition.get('notes', [])
+                    if notes:
+                        note = notes[0].get('headline', '')
+                        if note:
+                            round_name = note
+                
                 leg_data = competition.get('leg', {})
                 if leg_data:
                     leg = leg_data.get('value')
+
+                # Extract team rankings
+                home_rank = home_team_data.get('curatedRank', {}).get('current')
+                away_rank = away_team_data.get('curatedRank', {}).get('current')
+                # Only use ranking if it's a valid number (not 99 which means unranked)
+                if home_rank and home_rank > 50:
+                    home_rank = None
+                if away_rank and away_rank > 50:
+                    away_rank = None
 
                 espn_event_id = event.get('id')
                 if espn_event_id:
@@ -177,6 +195,8 @@ class Command(BaseCommand):
                             'round_name': round_name,
                             'leg': leg,
                             'total_legs': total_legs,
+                            'home_rank': home_rank,
+                            'away_rank': away_rank,
                         }
                     )
 

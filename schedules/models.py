@@ -47,6 +47,8 @@ class Game(models.Model):
     round_name = models.CharField(max_length=50, blank=True, default='')
     leg = models.PositiveIntegerField(null=True, blank=True)
     total_legs = models.PositiveIntegerField(null=True, blank=True)
+    home_rank = models.PositiveIntegerField(null=True, blank=True)
+    away_rank = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ['start_time']

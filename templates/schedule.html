@@ -133,6 +133,19 @@
         letter-spacing: 1px;
     }
     
+    .team-rank {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #ffd700;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        margin-bottom: 4px;
+    }
+    
+    .team-rank-placeholder {
+        height: 1.1em;
+        margin-bottom: 4px;
+    }
+    
     /* VS divider */
     .vs-divider {
         display: flex;
@@ -175,13 +188,13 @@
     .round-info {
         text-align: center;
         font-size: 0.75rem;
-        color: rgba(255,255,255,0.9);
+        color: white;
         font-weight: 600;
-        margin-top: 8px;
-        padding: 4px 8px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 8px;
-        display: inline-block;
+        margin: 8px auto 0;
+        padding: 6px 12px;
+        background: rgba(0,0,0,0.5);
+        border-radius: 12px;
+        width: fit-content;
     }
     
     .leg-info {
@@ -337,6 +350,11 @@
                                 <div class="teams-section">
                                     <!-- Away Team -->
                                     <div class="team-side">
+                                        {% if game.away_rank %}
+                                            <div class="team-rank" style="color: {{ away_team_data.alternate|default:'#ffd700' }};">#{{ game.away_rank }}</div>
+                                        {% elif game.home_rank %}
+                                            <div class="team-rank-placeholder"></div>
+                                        {% endif %}
                                         {% if game.away_team.logo_url %}
                                             <img src="{{ game.away_team.logo_url }}" alt="{{ game.away_team.name }}" class="team-logo">
                                         {% else %}
@@ -356,6 +374,11 @@
                                     
                                     <!-- Home Team -->
                                     <div class="team-side">
+                                        {% if game.home_rank %}
+                                            <div class="team-rank" style="color: {{ home_team_data.alternate|default:'#ffd700' }};">#{{ game.home_rank }}</div>
+                                        {% elif game.away_rank %}
+                                            <div class="team-rank-placeholder"></div>
+                                        {% endif %}
                                         {% if game.home_team.logo_url %}
                                             <img src="{{ game.home_team.logo_url }}" alt="{{ game.home_team.name }}" class="team-logo">
                                         {% else %}
