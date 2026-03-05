@@ -100,11 +100,56 @@ class StreamingService(models.Model):
 
 Use function-based views, `@login_required`, extend `base.html`, use Bootstrap 5.
 
+Templates should extend `base.html` and define a `content` block:
+
+```django
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Page Title</h1>
+</div>
+{% endblock %}
+```
+
+### Admin Registration
+
+Register models in `admin.py`:
+
+```python
+from django.contrib import admin
+from .models import Game, Team, Sport
+
+@admin.register(Game)
+class GameAdmin(admin.ModelAdmin):
+    list_display = ('home_team', 'away_team', 'start_time', 'streaming_service')
+    list_filter = ('sport', 'streaming_service')
+    search_fields = ('home_team__name', 'away_team__name')
+```
+
 ### Error Handling
 
 - Use `try/except` with specific exception types
 - Log warnings for non-critical errors
 - Handle API failures gracefully
+- In management commands: use `self.stdout.write(self.style.WARNING(...))` for errors
+- In views/code: use Python's `logging` module
+
+### Logging
+
+Use Django's logging module in views and services:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+def some_view(request):
+    try:
+        # code
+    except SomeException as e:
+        logger.warning(f"Failed to process request: {e}")
+```
 
 ### API Integration
 
@@ -150,8 +195,8 @@ class ScheduleViewTest(TestCase):
 
 ## Quick Reference
 
-| Task   | Command                                            |
-|--------|-----------------------------------------------------|
-| Server | `python3 manage.py runserver`                      |
-| Tests  | `python3 manage.py test`                           |
-| Migrate| `python3 manage.py makemigrations && migrate`      |
+| Task    | Command                                       |
+| ------- | --------------------------------------------- |
+| Server  | `python3 manage.py runserver`                 |
+| Tests   | `python3 manage.py test`                      |
+| Migrate | `python3 manage.py makemigrations && migrate` |
