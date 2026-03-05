@@ -48,6 +48,9 @@ jobs:
 
             # 5. Refresh Apache
             sudo systemctl restart apache2
+
+            # 6. Set up daily cron job to fetch schedule (runs at 6am daily)
+            (crontab -l 2>/dev/null | grep -v "fetch_schedule"; echo "0 6 * * * cd /opt/gamestream && /usr/local/bin/docker-compose exec -T web python manage.py fetch_schedule --days 8 >> /var/log/fetch_schedule.log 2>&1") | crontab -
           EOF
 
       - name: Cleanup SSH key
