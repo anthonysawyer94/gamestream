@@ -22,6 +22,13 @@ class Team(models.Model):
     sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name='teams')
     espn_id = models.CharField(max_length=20)
     record = models.CharField(max_length=15, blank=True, default='')
+    headshot_url = models.URLField(blank=True, default='')
+    height = models.CharField(max_length=20, blank=True, default='')
+    weight = models.CharField(max_length=20, blank=True, default='')
+    reach = models.CharField(max_length=20, blank=True, default='')
+    stance = models.CharField(max_length=20, blank=True, default='')
+    nickname = models.CharField(max_length=50, blank=True, default='')
+    age = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         unique_together = ('sport', 'espn_id')
@@ -50,6 +57,7 @@ class Game(models.Model):
     total_legs = models.PositiveIntegerField(null=True, blank=True)
     home_rank = models.PositiveIntegerField(null=True, blank=True)
     away_rank = models.PositiveIntegerField(null=True, blank=True)
+    card_type = models.CharField(max_length=20, blank=True, default='')  # 'early_prelims', 'prelims', 'main_card'
 
     class Meta:
         ordering = ['start_time']

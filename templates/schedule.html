@@ -5,6 +5,98 @@
 
 {% block content %}
 <style>
+    /* UFC Card Styles */
+    .ufc-card .fighter-headshot {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.1);
+    }
+    
+    .ufc-card .fighter-last-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: white;
+        margin-top: 4px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .ufc-card .fighter-record {
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+        margin-top: 2px;
+    }
+    
+    .ufc-card .btn-expand {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+        margin-left: auto;
+    }
+    
+    .ufc-card .btn-expand:hover {
+        background: rgba(255,255,255,0.1);
+    }
+    
+    .ufc-card .btn-expand svg {
+        transition: transform 0.3s;
+    }
+    
+    .ufc-card .btn-expand.expanded svg {
+        transform: rotate(180deg);
+    }
+    
+    .ufc-card .ufc-fighter-details {
+        background: rgba(0,0,0,0.3);
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 10px;
+    }
+    
+    .ufc-card .fighter-detail-row {
+        padding: 8px 0;
+    }
+    
+    .ufc-card .fighter-detail-row:not(:last-child) {
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .ufc-card .fighter-detail-item {
+        color: white;
+    }
+    
+    .ufc-card .fighter-detail-item strong {
+        font-size: 14px;
+    }
+    
+    .ufc-card .fighter-detail-item .nickname {
+        color: #FFD700;
+        font-style: italic;
+        margin-left: 4px;
+    }
+    
+    .ufc-card .detail-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+        font-size: 11px;
+        color: rgba(255,255,255,0.6);
+    }
+    
+    .ufc-card .detail-stats span {
+        background: rgba(255,255,255,0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    
     .game-card {
         position: relative;
         border-radius: 16px;
@@ -351,6 +443,107 @@
                     {% get_team_colors game.away_team as away_team_data %}
                     
                     <div class="col-md-6 col-lg-4 mb-4">
+                        {% if game.sport.slug == 'ufc' %}
+                        <!-- UFC Fighter Card -->
+                        <div class="game-card ufc-card">
+                            <div class="diagonal-bg">
+                                <div class="away-bg" style="background: linear-gradient(135deg, #D00000 0%, #8B0000 100%);"></div>
+                                <div class="home-bg" style="background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);"></div>
+                            </div>
+                            
+                            <div class="game-content">
+                                <!-- Fighter vs Fighter -->
+                                <div class="teams-section">
+                                    <!-- Fighter 1 (Away) -->
+                                    <div class="team-side">
+                                        {% if game.away_team.headshot_url %}
+                                            <img src="{{ game.away_team.headshot_url }}" alt="{{ game.away_team.name }}" class="fighter-headshot">
+                                        {% else %}
+                                            <div class="team-initial-circle">
+                                                {{ game.away_team.abbreviation|slice:":2"|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="fighter-last-name">{{ game.away_team.name }}</div>
+                                        <div class="fighter-record">{% if game.away_team.record %}{{ game.away_team.record }}{% else %}&nbsp;{% endif %}</div>
+                                    </div>
+                                    
+                                    <!-- VS Divider with Weight Class -->
+                                    <div class="vs-divider">
+                                        <div class="game-time" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                        <div class="vs-text">VS</div>
+                                    </div>
+                                    
+                                    <!-- Fighter 2 (Home) -->
+                                    <div class="team-side">
+                                        {% if game.home_team.headshot_url %}
+                                            <img src="{{ game.home_team.headshot_url }}" alt="{{ game.home_team.name }}" class="fighter-headshot">
+                                        {% else %}
+                                            <div class="team-initial-circle">
+                                                {{ game.home_team.abbreviation|slice:":2"|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="fighter-last-name">{{ game.home_team.name }}</div>
+                                        <div class="fighter-record">{% if game.home_team.record %}{{ game.home_team.record }}{% else %}&nbsp;{% endif %}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Weight Class -->
+                                <div class="round-info">
+                                    {% if game.round_name %}
+                                        {{ game.round_name|get_weight_class }}
+                                    {% else %}
+                                        <span>&nbsp;</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Bottom info bar -->
+                                <div class="game-info-bar">
+                                    <span class="league-badge">UFC 🥊</span>
+                                    {% if game.streaming_service %}
+                                        <span class="service-badge badge-{{ game.streaming_service.slug }}">
+                                            {{ game.streaming_service.name }}
+                                        </span>
+                                    {% endif %}
+                                    <button class="btn-expand" onclick="toggleUfcDetails(this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <!-- Hidden fighter details -->
+                                <div class="ufc-fighter-details" style="display: none;">
+                                    <div class="fighter-detail-row">
+                                        <div class="fighter-detail-item">
+                                            <strong>{{ game.away_team.name }}</strong>
+                                            {% if game.away_team.nickname %}<span class="nickname">({{ game.away_team.nickname }})</span>{% endif %}
+                                            <div class="detail-stats">
+                                                {% if game.away_team.height %}<span>Height: {{ game.away_team.height }}</span>{% endif %}
+                                                {% if game.away_team.weight %}<span>Weight: {{ game.away_team.weight }}</span>{% endif %}
+                                                {% if game.away_team.reach %}<span>Reach: {{ game.away_team.reach }}</span>{% endif %}
+                                                {% if game.away_team.stance %}<span>Stance: {{ game.away_team.stance }}</span>{% endif %}
+                                                {% if game.away_team.age %}<span>Age: {{ game.away_team.age }}</span>{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="fighter-detail-row">
+                                        <div class="fighter-detail-item">
+                                            <strong>{{ game.home_team.name }}</strong>
+                                            {% if game.home_team.nickname %}<span class="nickname">({{ game.home_team.nickname }})</span>{% endif %}
+                                            <div class="detail-stats">
+                                                {% if game.home_team.height %}<span>Height: {{ game.home_team.height }}</span>{% endif %}
+                                                {% if game.home_team.weight %}<span>Weight: {{ game.home_team.weight }}</span>{% endif %}
+                                                {% if game.home_team.reach %}<span>Reach: {{ game.home_team.reach }}</span>{% endif %}
+                                                {% if game.home_team.stance %}<span>Stance: {{ game.home_team.stance }}</span>{% endif %}
+                                                {% if game.home_team.age %}<span>Age: {{ game.home_team.age }}</span>{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Regular Team Sports Card -->
                         <div class="game-card">
                             <!-- Diagonal background -->
                             <div class="diagonal-bg">
@@ -423,7 +616,7 @@
                                 <!-- Bottom info bar -->
                                 <div class="game-info-bar">
                                     <span class="league-badge">
-                                        {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% elif game.sport.league == 'Champions League' %}Champions League 🏆{% elif game.sport.league == 'Europa League' %}Europa League 🌟{% elif game.sport.league == 'Conference League' %}Conference League 🎯{% elif game.sport.league == 'UFC' %}UFC 🥊{% elif game.sport.league == 'WTA' %}WTA 🎾{% elif game.sport.league == 'ATP' %}ATP 🎾{% else %}{{ game.sport.league }}{% endif %}
+                                        {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% elif game.sport.league == 'La Liga' %}La Liga ⚽{% elif game.sport.league == 'Bundesliga' %}Bundesliga ⚽{% elif game.sport.league == 'Serie A' %}Serie A ⚽{% elif game.sport.league == 'Ligue 1' %}Ligue 1 ⚽{% elif game.sport.league == 'Champions League' %}Champions League 🏆{% elif game.sport.league == 'Europa League' %}Europa League 🌟{% elif game.sport.league == 'Conference League' %}Conference League 🎯{% elif game.sport.league == 'UFC' %}UFC 🥊{% elif game.sport.league == 'WTA' %}WTA 🎾{% elif game.sport.league == 'ATP' %}ATP 🎾{% else %}{{ game.sport.league }}{% endif %}
                                     </span>
                                     {% if game.streaming_service %}
                                         <span class="service-badge badge-{{ game.streaming_service.slug }}">
@@ -432,6 +625,7 @@
                                     {% endif %}
                                 </div>
                             </div>
+                        {% endif %}
                         </div>
                     </div>
                 {% endfor %}
@@ -461,5 +655,19 @@
             element.textContent = formattedTime;
         });
     });
+    
+    // Toggle UFC fighter details
+    function toggleUfcDetails(button) {
+        const card = button.closest('.game-card');
+        const details = card.querySelector('.ufc-fighter-details');
+        
+        if (details.style.display === 'none') {
+            details.style.display = 'block';
+            button.classList.add('expanded');
+        } else {
+            details.style.display = 'none';
+            button.classList.remove('expanded');
+        }
+    }
 </script>
 {% endblock %}

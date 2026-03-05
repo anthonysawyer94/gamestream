@@ -20,7 +20,6 @@ SPORT_MAPPING = {
     'usa_1': {'name': 'Soccer', 'league': 'MLS', 'sport_path': 'soccer/usa.1', 'color': '#335222'},
     'uefa_champions': {'name': 'Soccer', 'league': 'Champions League', 'sport_path': 'soccer/uefa.champions', 'color': '#0E1F3C'},
     'uefa_europa': {'name': 'Soccer', 'league': 'Europa League', 'sport_path': 'soccer/uefa.europa', 'color': '#FF6600'},
-    'uefa_conference': {'name': 'Soccer', 'league': 'Conference League', 'sport_path': 'soccer/uefa.conference', 'color': '#4B0082'},
     'ufc': {'name': 'MMA', 'league': 'UFC', 'sport_path': 'mma/ufc', 'color': '#D00000'},
 
     'tennis_wta': {'name': 'Tennis', 'league': 'WTA', 'sport_path': 'tennis/wta', 'color': '#FF69B4'},
@@ -79,6 +78,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Successfully fetched sports schedule'))
 
     def fetch_sport_schedule(self, sport_path, sport_key, days):
+        # Check if this is a UFC/MMA sport - handle differently (individual athletes, not teams)
+        if sport_path.startswith('mma/'):
+            self.fetch_ufc_schedule(sport_path, sport_key, days)
+            return
+        
         sport, created = Sport.objects.get_or_create(
             slug=sport_key,
             defaults={
@@ -254,3 +258,238 @@ class Command(BaseCommand):
             if updated:
                 team.save()
         return team
+
+    def fetch_ufc_schedule(self, sport_path, sport_key, days):
+        """Fetch UFC/MMA fights - they use individual athletes instead of teams"""
+        sport, created = Sport.objects.get_or_create(
+            slug=sport_key,
+            defaults={
+                'name': SPORT_MAPPING[sport_key]['name'],
+                'league': SPORT_MAPPING[sport_key]['league'],
+                'color': SPORT_MAPPING[sport_key].get('color', ''),
+            }
+        )
+
+        today = timezone.now().date()
+        start_date = today - timedelta(days=1)
+        
+        for day_offset in range(days):
+            date = start_date + timedelta(days=day_offset)
+            date_str = date.strftime('%Y%m%d')
+
+            url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
+            
+            try:
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+
+                if 'events' in data:
+                    self.process_ufc_events(data['events'], sport)
+
+            except requests.RequestException as e:
+                self.stdout.write(self.style.WARNING(f"Error fetching UFC {date_str}: {e}"))
+                continue
+
+    def process_ufc_events(self, events, sport):
+        """Process UFC fights - uses athletes instead of teams"""
+        for event in events:
+            event_name = event.get('name', 'UFC Fight')
+            event_id = event.get('id')
+
+            competitions = event.get('competitions', [])
+
+            for competition in competitions:
+                try:
+                    competitors = competition.get('competitors', [])
+
+                    if len(competitors) < 2:
+                        continue
+
+                    competition_id = competition.get('id')
+
+                    competition_type = competition.get('type', {})
+                    weight_class = competition_type.get('abbreviation', '')
+
+                    status = competition.get('status', {})
+                    status_state = status.get('state', 'pre')
+
+                    fighter1_data = competitors[0]
+                    fighter2_data = competitors[1]
+
+                    fighter1 = fighter1_data.get('athlete', {})
+                    fighter2 = fighter2_data.get('athlete', {})
+
+                    fighter1_name = fighter1.get('displayName', 'Unknown')
+                    fighter2_name = fighter2.get('displayName', 'Unknown')
+
+                    fighter1_record = ''
+                    fighter2_record = ''
+
+                    f1_records = fighter1_data.get('records', [])
+                    if f1_records:
+                        fighter1_record = f1_records[0].get('summary', '')
+
+                    f2_records = fighter2_data.get('records', [])
+                    if f2_records:
+                        fighter2_record = f2_records[0].get('summary', '')
+
+                    fighter1_athlete_id = fighter1_data.get('id')
+                    fighter2_athlete_id = fighter2_data.get('id')
+
+                    fighter1_details = self.fetch_fighter_details(fighter1_athlete_id)
+                    fighter2_details = self.fetch_fighter_details(fighter2_athlete_id)
+
+                    unique_fighter_id = f"ufc_{event_id}_{competition_id}"
+
+                    fighter1_team, _ = Team.objects.get_or_create(
+                        sport=sport,
+                        espn_id=f"{unique_fighter_id}_f1",
+                        defaults={
+                            'name': fighter1_name,
+                            'abbreviation': fighter1_name[:10].upper().replace(' ', ''),
+                            'logo_url': '',
+                            'record': fighter1_record,
+                            'headshot_url': fighter1_details.get('headshot_url', ''),
+                            'height': fighter1_details.get('height', ''),
+                            'weight': fighter1_details.get('weight', ''),
+                            'reach': fighter1_details.get('reach', ''),
+                            'stance': fighter1_details.get('stance', ''),
+                            'nickname': fighter1_details.get('nickname', ''),
+                            'age': fighter1_details.get('age'),
+                        }
+                    )
+
+                    fighter2_team, _ = Team.objects.get_or_create(
+                        sport=sport,
+                        espn_id=f"{unique_fighter_id}_f2",
+                        defaults={
+                            'name': fighter2_name,
+                            'abbreviation': fighter2_name[:10].upper().replace(' ', ''),
+                            'logo_url': '',
+                            'record': fighter2_record,
+                            'headshot_url': fighter2_details.get('headshot_url', ''),
+                            'height': fighter2_details.get('height', ''),
+                            'weight': fighter2_details.get('weight', ''),
+                            'reach': fighter2_details.get('reach', ''),
+                            'stance': fighter2_details.get('stance', ''),
+                            'nickname': fighter2_details.get('nickname', ''),
+                            'age': fighter2_details.get('age'),
+                        }
+                    )
+
+                    self.update_fighter_team(fighter1_team, fighter1_details, fighter1_record)
+                    self.update_fighter_team(fighter2_team, fighter2_details, fighter2_record)
+
+                    broadcast_names = []
+                    geo_broadcasts = competition.get('geoBroadcasts', [])
+                    for gb in geo_broadcasts:
+                        media = gb.get('media', {})
+                        short_name = media.get('shortName', '')
+                        if short_name:
+                            broadcast_names.append(short_name)
+
+                    streaming_service = None
+                    for b in broadcast_names:
+                        for key, slug in BROADCAST_MAPPING.items():
+                            if key and key.lower() in b.lower():
+                                streaming_service = StreamingService.objects.filter(slug=slug).first()
+                                if streaming_service:
+                                    break
+                        if streaming_service:
+                            break
+
+                    if not streaming_service:
+                        continue
+
+                    start_time_str = competition.get('date')
+                    if start_time_str:
+                        start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                    else:
+                        continue
+
+                    # Determine card type based on format (5 rounds = main event)
+                    card_type = ''
+                    format_data = competition.get('format', {})
+                    periods = format_data.get('regulation', {}).get('periods', 3)
+                    if periods == 5:
+                        card_type = 'main_card'
+                    else:
+                        continue  # Skip non-main-card fights
+
+                    round_label = f"{event_name}"
+                    if weight_class:
+                        round_label = f"{weight_class}: {fighter1_name} vs {fighter2_name}"
+
+                    game, created = Game.objects.update_or_create(
+                        sport=sport,
+                        espn_id=f"{event_id}-{competition_id}",
+                        defaults={
+                            'home_team': fighter1_team,
+                            'away_team': fighter2_team,
+                            'start_time': start_time,
+                            'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
+                            'streaming_service': streaming_service,
+                            'status': status_state,
+                            'round_name': round_label,
+                            'card_type': card_type,
+                        }
+                    )
+
+                except Exception as e:
+                    self.stdout.write(self.style.WARNING(f"Error processing UFC fight: {e}"))
+                    continue
+
+    def fetch_fighter_details(self, athlete_id):
+        """Fetch additional fighter details from ESPN athlete API"""
+        if not athlete_id:
+            return {}
+
+        try:
+            url = f"https://sports.core.api.espn.com/v2/sports/mma/athletes/{athlete_id}?lang=en&region=us"
+            response = requests.get(url, timeout=30)
+            if response.status_code != 200:
+                return {}
+
+            athlete = response.json()
+
+            return {
+                'headshot_url': athlete.get('headshot', {}).get('href', ''),
+                'height': athlete.get('displayHeight', ''),
+                'weight': athlete.get('displayWeight', ''),
+                'reach': athlete.get('displayReach', ''),
+                'stance': athlete.get('stance', {}).get('text', '') if athlete.get('stance') else '',
+                'nickname': athlete.get('nickname', ''),
+                'age': athlete.get('age'),
+            }
+        except Exception:
+            return {}
+
+    def update_fighter_team(self, team, details, record):
+        """Update existing fighter team with additional details"""
+        updated = False
+
+        if details.get('headshot_url') and not team.headshot_url:
+            team.headshot_url = details.get('headshot_url', '')
+            updated = True
+        if details.get('height') and not team.height:
+            team.height = details.get('height', '')
+            updated = True
+        if details.get('weight') and not team.weight:
+            team.weight = details.get('weight', '')
+            updated = True
+        if details.get('reach') and not team.reach:
+            team.reach = details.get('reach', '')
+            updated = True
+        if details.get('stance') and not team.stance:
+            team.stance = details.get('stance', '')
+            updated = True
+        if details.get('nickname') and not team.nickname:
+            team.nickname = details.get('nickname', '')
+            updated = True
+        if details.get('age') and not team.age:
+            team.age = details.get('age')
+            updated = True
+
+        if updated:
+            team.save()

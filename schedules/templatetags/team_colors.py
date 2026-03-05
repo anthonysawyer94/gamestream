@@ -63,3 +63,14 @@ def get_league_color(sport):
         fallback = league_data
 
     return getattr(sport, 'color', None) or fallback
+
+
+@register.filter
+def get_weight_class(round_name):
+    """Extract weight class from round_name (format: 'WeightClass: Fighter1 vs Fighter2')"""
+    if not round_name:
+        return ''
+    # Get everything before the first colon
+    if ':' in round_name:
+        return round_name.split(':')[0].strip()
+    return round_name
