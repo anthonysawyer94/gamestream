@@ -181,13 +181,23 @@ class Command(BaseCommand):
             defaults={
                 'name': team_info.get('displayName', 'Unknown'),
                 'abbreviation': team_info.get('abbreviation', 'UNK'),
-                'logo_url': team_info.get('logos', [{}])[0].get('href', '') if team_info.get('logos') else '',
+                'logo_url': team_info.get('logo', ''),
                 'color': team_info.get('color', ''),
                 'alternate_color': team_info.get('alternateColor', ''),
             }
         )
-        if not created and not team.color:
-            team.color = team_info.get('color', '')
-            team.alternate_color = team_info.get('alternateColor', '')
-            team.save()
+        if not created:
+            # Update missing data for existing teams
+            updated = False
+            if not team.logo_url and team_info.get('logo'):
+                team.logo_url = team_info.get('logo', '')
+                updated = True
+            if not team.color and team_info.get('color'):
+                team.color = team_info.get('color', '')
+                updated = True
+            if not team.alternate_color and team_info.get('alternateColor'):
+                team.alternate_color = team_info.get('alternateColor', '')
+                updated = True
+            if updated:
+                team.save()
         return team

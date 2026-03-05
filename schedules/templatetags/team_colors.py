@@ -32,10 +32,20 @@ def get_team_colors(team):
     sport = getattr(team, 'sport', None)
     sport_color = getattr(sport, 'color', None) if sport else None
     league_name = getattr(sport, 'league', '') if sport else ''
+    
+    # Ensure colors have # prefix (ESPN API returns without #)
+    def ensure_hash(color):
+        if color and not color.startswith('#'):
+            return f'#{color}'
+        return color
+    
+    # Get final colors with fallbacks
+    final_color = ensure_hash(t_color) or ensure_hash(sport_color) or LEAGUE_COLORS.get(league_name, {}).get('color', '#1a1d21')
+    final_alternate = ensure_hash(t_alt) or LEAGUE_COLORS.get(league_name, {}).get('alternate', '#2d3238')
 
     return {
-        'color': t_color or sport_color or LEAGUE_COLORS.get(league_name, {}).get('color', '#1a1d21'),
-        'alternate': t_alt or LEAGUE_COLORS.get(league_name, {}).get('alternate', '#2d3238'),
+        'color': final_color,
+        'alternate': final_alternate,
     }
 
 
