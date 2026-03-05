@@ -46,6 +46,24 @@ python3 manage.py fetch_schedule
 python3 manage.py fetch_schedule --days 14
 ```
 
+## Fetching Schedule
+
+After DB changes (new sports, models, etc.), run fetch_schedule to populate games:
+
+```bash
+# Local
+python3 manage.py fetch_schedule --days 7
+
+# Production (EC2)
+docker-compose exec -T web python manage.py fetch_schedule --days 7
+```
+
+The command:
+- Fetches games for all configured sports (NBA, MLB, NHL, NCAA, soccer leagues)
+- Only saves games with known streaming services (filters OTA broadcasts)
+- Automatically deletes games older than 2 days
+- Run manually after DB changes, or set up a daily cron job on EC2
+
 ## Code Style Guidelines
 
 ### Python Style
