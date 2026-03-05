@@ -22,8 +22,7 @@ SPORT_MAPPING = {
     'uefa_europa': {'name': 'Soccer', 'league': 'Europa League', 'sport_path': 'soccer/uefa.europa', 'color': '#FF6600'},
     'uefa_conference': {'name': 'Soccer', 'league': 'Conference League', 'sport_path': 'soccer/uefa.conference', 'color': '#4B0082'},
     'ufc': {'name': 'MMA', 'league': 'UFC', 'sport_path': 'mma/ufc', 'color': '#D00000'},
-    'golf_pga': {'name': 'Golf', 'league': 'PGA Tour', 'sport_path': 'golf/pga', 'color': '#006400'},
-    'golf_liv': {'name': 'Golf', 'league': 'LIV Golf', 'sport_path': 'golf/liv', 'color': '#000000'},
+
     'tennis_wta': {'name': 'Tennis', 'league': 'WTA', 'sport_path': 'tennis/wta', 'color': '#FF69B4'},
     'tennis_atp': {'name': 'Tennis', 'league': 'ATP', 'sport_path': 'tennis/atp', 'color': '#4169E1'},
 }
@@ -80,11 +79,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Successfully fetched sports schedule'))
 
     def fetch_sport_schedule(self, sport_path, sport_key, days):
-        # Check if this is a golf sport - handle differently
-        if sport_path.startswith('golf/'):
-            self.fetch_golf_schedule(sport_path, sport_key, days)
-            return
-        
         sport, created = Sport.objects.get_or_create(
             slug=sport_key,
             defaults={
@@ -260,150 +254,3 @@ class Command(BaseCommand):
             if updated:
                 team.save()
         return team
-
-    def fetch_golf_schedule(self, sport_path, sport_key, days):
-        """Fetch golf tournaments - they have different data structure than team sports"""
-        sport, created = Sport.objects.get_or_create(
-            slug=sport_key,
-            defaults={
-                'name': SPORT_MAPPING[sport_key]['name'],
-                'league': SPORT_MAPPING[sport_key]['league'],
-                'color': SPORT_MAPPING[sport_key].get('color', ''),
-            }
-        )
-
-        today = timezone.now().date()
-        start_date = today - timedelta(days=1)
-        
-        for day_offset in range(days):
-            date = start_date + timedelta(days=day_offset)
-            date_str = date.strftime('%Y%m%d')
-
-            url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
-            
-            try:
-                response = requests.get(url, timeout=30)
-                response.raise_for_status()
-                data = response.json()
-
-                if 'events' in data:
-                    self.process_golf_events(data['events'], sport)
-
-            except requests.RequestException as e:
-                self.stdout.write(self.style.WARNING(f"Error fetching {date_str}: {e}"))
-                continue
-
-    def process_golf_events(self, events, sport):
-        """Process golf tournaments differently - they use athletes not teams"""
-        for event in events:
-            try:
-                competition = event.get('competitions', [{}])[0]
-                competitors = competition.get('competitors', [])
-
-                if not competitors:
-                    continue
-
-                # Get tournament name
-                tournament_name = event.get('name', 'Unknown Tournament')
-                
-                # Get status/round info
-                status = competition.get('status', {}).get('type', {})
-                status_state = status.get('state', 'scheduled')
-                status_name = status.get('name', 'STATUS_SCHEDULED')
-                
-                # Map status to round name
-                round_name = ''
-                if status_state == 'post':
-                    round_name = 'Final'
-                elif status_state == 'in':
-                    # Try to get current period/round
-                    period = competition.get('status', {}).get('period')
-                    if period is not None:
-                        round_name = f'Round {period + 1}'
-                    else:
-                        round_name = 'In Progress'
-                else:
-                    # For scheduled, get the round from status detail or default
-                    detail = status.get('detail', '')
-                    round_name = 'Scheduled'
-
-                # Get leaderboard - top 10
-                leaderboard_lines = []
-                for i, comp in enumerate(competitors[:10], 1):
-                    athlete = comp.get('athlete', {})
-                    name = athlete.get('fullName', 'Unknown')
-                    score = comp.get('score', 'E')
-                    # Format: "1. Name -17"
-                    leaderboard_lines.append(f"{i}. {name} {score}")
-                
-                leaderboard = '\n'.join(leaderboard_lines)
-
-                # Get broadcast/streaming info
-                broadcast_names = []
-                geo_broadcasts = competition.get('geoBroadcasts', [])
-                for gb in geo_broadcasts:
-                    media = gb.get('media', {})
-                    short_name = media.get('shortName', '')
-                    if short_name:
-                        broadcast_names.append(short_name)
-
-                # For golf, prioritize Peacock if available (more complete coverage)
-                # Collect all available services first, then prioritize
-                available_services = []
-                for b in broadcast_names:
-                    for key, slug in BROADCAST_MAPPING.items():
-                        if key and key.lower() in b.lower():
-                            service = StreamingService.objects.filter(slug=slug).first()
-                            if service and service not in available_services:
-                                available_services.append(service)
-                
-                # For golf, prefer Peacock over ESPN+ (more tournament coverage)
-                streaming_service = None
-                for svc in available_services:
-                    if svc.slug == 'peacock':
-                        streaming_service = svc
-                        break
-                if not streaming_service and available_services:
-                    streaming_service = available_services[0]
-
-                if not streaming_service:
-                    continue
-
-                start_time_str = competition.get('date')
-                if start_time_str:
-                    start_time = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
-                else:
-                    continue
-
-                # Get or create placeholder teams for golf
-                # We need home_team and away_team, so we'll create a placeholder team for the tournament
-                tournament_team, _ = Team.objects.get_or_create(
-                    sport=sport,
-                    espn_id=f"golf_{sport.slug}_{event.get('id')}",
-                    defaults={
-                        'name': tournament_name,
-                        'abbreviation': tournament_name[:10].upper().replace(' ', ''),
-                        'logo_url': '',
-                    }
-                )
-
-                espn_event_id = event.get('id')
-                if espn_event_id:
-                    game, created = Game.objects.update_or_create(
-                        sport=sport,
-                        espn_id=espn_event_id,
-                        defaults={
-                            'home_team': tournament_team,
-                            'away_team': tournament_team,  # Same team for golf
-                            'start_time': start_time,
-                            'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
-                            'streaming_service': streaming_service,
-                            'status': status_state,
-                            'round_name': round_name,
-                            'leaderboard': leaderboard,
-                        }
-                    )
-
-            except Exception as e:
-                self.stdout.write(self.style.WARNING(f"Error processing golf event: {e}"))
-                continue

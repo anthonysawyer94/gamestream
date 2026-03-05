@@ -211,37 +211,6 @@
         opacity: 0.8;
     }
     
-    /* Golf tournament styles */
-    .golf-section {
-        text-align: center;
-        padding: 8px 0;
-    }
-    
-    .golf-tournament-name {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: white;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-        margin-bottom: 8px;
-    }
-    
-    .golf-leaderboard {
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 8px;
-        padding: 8px 12px;
-        margin: 0 auto;
-        max-width: 90%;
-    }
-    
-    .golf-leaderboard pre {
-        margin: 0;
-        font-family: 'Courier New', monospace;
-        font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.9);
-        line-height: 1.4;
-        white-space: pre-wrap;
-    }
-    
     /* Bottom info bar */
     .game-info-bar {
         display: flex;
@@ -433,18 +402,6 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Golf tournament display -->
-                                {% if game.sport.league == 'PGA Tour' or game.sport.league == 'LIV Golf' %}
-                                <div class="golf-section">
-                                    <div class="golf-tournament-name">{{ game.home_team.name }}</div>
-                                    {% if game.leaderboard %}
-                                    <div class="golf-leaderboard">
-                                        <pre>{{ game.leaderboard }}</pre>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                                
                                 <!-- Round/Leg info for knockout matches -->
                                 <div class="round-info" {% if not game.round_name %}style="visibility: hidden;"{% endif %}>
                                     {% if game.round_name %}
@@ -460,7 +417,7 @@
                                 <!-- Bottom info bar -->
                                 <div class="game-info-bar">
                                     <span class="league-badge">
-                                        {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% elif game.sport.league == 'Champions League' %}Champions League 🏆{% elif game.sport.league == 'Europa League' %}Europa League 🌟{% elif game.sport.league == 'Conference League' %}Conference League 🎯{% elif game.sport.league == 'UFC' %}UFC 🥊{% elif game.sport.league == 'PGA Tour' %}PGA Tour ⛳{% elif game.sport.league == 'LIV Golf' %}LIV Golf ⛳{% elif game.sport.league == 'WTA' %}WTA 🎾{% elif game.sport.league == 'ATP' %}ATP 🎾{% else %}{{ game.sport.league }}{% endif %}
+                                        {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% elif game.sport.league == 'Champions League' %}Champions League 🏆{% elif game.sport.league == 'Europa League' %}Europa League 🌟{% elif game.sport.league == 'Conference League' %}Conference League 🎯{% elif game.sport.league == 'UFC' %}UFC 🥊{% elif game.sport.league == 'WTA' %}WTA 🎾{% elif game.sport.league == 'ATP' %}ATP 🎾{% else %}{{ game.sport.league }}{% endif %}
                                     </span>
                                     {% if game.streaming_service %}
                                         <span class="service-badge badge-{{ game.streaming_service.slug }}">
