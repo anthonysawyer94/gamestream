@@ -150,10 +150,26 @@
     }
     
     .game-time {
-        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
         font-weight: 700;
         color: white;
         text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        letter-spacing: 0.5px;
+        min-width: 90px;
+    }
+    
+    .game-time .tz {
+        font-size: 0.7rem;
+        font-weight: 500;
+        opacity: 0.85;
+        margin-left: 4px;
     }
     
     /* Bottom info bar */
@@ -337,7 +353,9 @@
                                 
                                 <!-- Bottom info bar -->
                                 <div class="game-info-bar">
-                                    <span class="league-badge">{{ game.sport.league }}</span>
+                                    <span class="league-badge">
+                                        {% if game.sport.league == 'NBA' %}NBA 🏀{% elif game.sport.league == 'MLB' %}MLB ⚾{% elif game.sport.league == 'NHL' %}NHL 🏒{% elif game.sport.league == 'NFL' %}NFL 🏈{% elif game.sport.league == 'MLS' %}MLS ⚽{% elif game.sport.league == 'NCAA' %}NCAA 🏀{% elif game.sport.league == 'Premier League' %}Premier League ⚽{% else %}{{ game.sport.league }}{% endif %}
+                                    </span>
                                     {% if game.streaming_service %}
                                         <span class="service-badge badge-{{ game.streaming_service.slug }}">
                                             {{ game.streaming_service.name }}

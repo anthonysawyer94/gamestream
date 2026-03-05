@@ -300,15 +300,13 @@
                 const utcTime = el.getAttribute('data-utc');
                 if (utcTime) {
                     const date = new Date(utcTime);
-                    const options = { 
-                        weekday: 'short', 
-                        month: 'short', 
-                        day: 'numeric', 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        timeZoneName: 'short'
-                    };
-                    el.textContent = date.toLocaleString(undefined, options);
+                    const full = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' });
+                    const match = full.match(/^(\d{1,2}:\d{2}\s*[AP]M)\s*([A-Z]{2,})$/i);
+                    if (match) {
+                        el.innerHTML = match[1] + ' <span class="tz">' + match[2] + '</span>';
+                    } else {
+                        el.textContent = full.replace(/\u202f/g, ' ');
+                    }
                 }
             });
         });
