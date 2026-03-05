@@ -62,8 +62,21 @@ def schedule(request):
     today = timezone.localtime(timezone.now()).date()
     week_later = today + timedelta(days=7)
 
-    sport_id = request.GET.get('sport')
-    service_id = request.GET.get('service', 'all')
+    user_services = []
+    user_sports = []
+    if request.user.is_authenticated:
+        user_services = list(
+            request.user.subscriptions.values_list('streaming_service_id', flat=True)
+        )
+        user_sports = list(
+            request.user.sport_preferences.values_list('sport_id', flat=True)
+        )
+
+    sport_default = 'my_sports' if user_sports else ''
+    service_default = 'my_services' if user_services else 'all'
+
+    sport_id = request.GET.get('sport', sport_default)
+    service_id = request.GET.get('service', service_default)
 
     games = Game.objects.filter(
         start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
@@ -75,16 +88,6 @@ def schedule(request):
         status='post',
         start_time__lt=cutoff_time
     )
-
-    user_services = []
-    user_sports = []
-    if request.user.is_authenticated:
-        user_services = list(
-            request.user.subscriptions.values_list('streaming_service_id', flat=True)
-        )
-        user_sports = list(
-            request.user.sport_preferences.values_list('sport_id', flat=True)
-        )
 
     if sport_id == 'my_sports' and user_sports:
         games = games.filter(sport_id__in=user_sports)
