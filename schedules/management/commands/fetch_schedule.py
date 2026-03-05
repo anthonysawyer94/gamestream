@@ -12,6 +12,13 @@ SPORT_MAPPING = {
     'mlb': {'name': 'Baseball', 'league': 'MLB', 'sport_path': 'baseball/mlb'},
     'nhl': {'name': 'Hockey', 'league': 'NHL', 'sport_path': 'hockey/nhl'},
     'ncaamb': {'name': 'Basketball', 'league': 'NCAA', 'sport_path': 'basketball/mens-college-basketball'},
+    'eng_1': {'name': 'Soccer', 'league': 'Premier League', 'sport_path': 'soccer/eng.1'},
+    'esp_1': {'name': 'Soccer', 'league': 'La Liga', 'sport_path': 'soccer/esp.1'},
+    'ger_1': {'name': 'Soccer', 'league': 'Bundesliga', 'sport_path': 'soccer/ger.1'},
+    'ita_1': {'name': 'Soccer', 'league': 'Serie A', 'sport_path': 'soccer/ita.1'},
+    'fra_1': {'name': 'Soccer', 'league': 'Ligue 1', 'sport_path': 'soccer/fra.1'},
+    'usa_1': {'name': 'Soccer', 'league': 'MLS', 'sport_path': 'soccer/usa.1'},
+    'uefa_champions': {'name': 'Soccer', 'league': 'Champions League', 'sport_path': 'soccer/uefa.champions'},
 }
 
 BROADCAST_MAPPING = {
@@ -33,6 +40,10 @@ BROADCAST_MAPPING = {
     'Paramount+': 'paramount_plus',
     'Apple TV+': 'apple_tv',
     'Peacock': 'peacock',
+    'NBC': None,
+    'USA': None,
+    'Telemundo': None,
+    'Universo': None,
 }
 
 
@@ -53,6 +64,11 @@ class Command(BaseCommand):
         for sport_key, sport_data in SPORT_MAPPING.items():
             self.stdout.write(f"Fetching {sport_data['league']} schedule...")
             self.fetch_sport_schedule(sport_data['sport_path'], sport_key, days)
+
+        cutoff = timezone.now() - timedelta(days=2)
+        deleted_count = Game.objects.filter(start_time__lt=cutoff).delete()[0]
+        if deleted_count:
+            self.stdout.write(self.style.WARNING(f"Deleted {deleted_count} games older than 2 days"))
 
         self.stdout.write(self.style.SUCCESS('Successfully fetched sports schedule'))
 
@@ -123,6 +139,9 @@ class Command(BaseCommand):
                                     break
                         if streaming_service:
                             break
+
+                if not streaming_service:
+                    continue
 
                 status = competition.get('status', {}).get('type', {}).get('state', 'scheduled')
 
