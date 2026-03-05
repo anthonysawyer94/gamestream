@@ -18,7 +18,8 @@ class TeamAdmin(admin.ModelAdmin):
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ('home_team', 'away_team', 'sport', 'start_time', 'streaming_service', 'status')
+    list_display = ('home_team', 'away_team', 'sport',
+                    'start_time', 'streaming_service', 'status')
     list_filter = ('sport', 'streaming_service', 'status')
     search_fields = ('home_team__name', 'away_team__name')
     readonly_fields = ('espn_id',)
