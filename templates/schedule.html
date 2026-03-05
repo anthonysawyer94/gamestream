@@ -297,10 +297,7 @@
                                 <div class="home-bg" style="background: linear-gradient(135deg, {{ home_team_data.color }} 0%, {{ home_team_data.alternate|default:home_team_data.color }} 100%);"></div>
                             </div>
                             
-                            <!-- Date overlay -->
-                            <div class="date-overlay">
-                                {{ date|date:"M j" }}
-                            </div>
+
                             
                             <!-- Game content -->
                             <div class="game-content">
@@ -366,9 +363,15 @@
             const options = { 
                 hour: 'numeric', 
                 minute: '2-digit',
-                hour12: true 
+                hour12: true,
+                timeZoneName: 'short'
             };
-            element.textContent = localTime.toLocaleTimeString('en-US', options);
+            const formattedTime = localTime
+                .toLocaleTimeString('en-US', options)
+                .replace(/[\s\u202f]/g, '')
+                .toLowerCase();
+
+            element.textContent = formattedTime;
         });
     });
 </script>
