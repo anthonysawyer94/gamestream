@@ -63,8 +63,7 @@ def schedule(request):
     week_later = today + timedelta(days=7)
 
     sport_id = request.GET.get('sport')
-    filter_type = request.GET.get('filter_type', 'all')
-    service_id = request.GET.get('service')
+    service_id = request.GET.get('service', 'all')
 
     games = Game.objects.filter(
         start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
@@ -92,11 +91,9 @@ def schedule(request):
     elif sport_id and sport_id != 'my_sports':
         games = games.filter(sport_id=sport_id)
 
-    if filter_type == 'my_selected' and user_services:
+    if service_id == 'my_services' and user_services:
         games = games.filter(streaming_service_id__in=user_services)
-    elif filter_type == 'all_streaming':
-        games = games.exclude(streaming_service__isnull=True)
-    elif filter_type == 'service' and service_id:
+    elif service_id and service_id != 'all':
         games = games.filter(streaming_service_id=service_id)
 
     sports = Sport.objects.all()
@@ -116,7 +113,6 @@ def schedule(request):
         'services': services,
         'selected_sport': sport_id,
         'selected_service': service_id,
-        'filter_type': filter_type,
         'user_services': user_services,
         'user_sports': user_sports,
         'today': timezone.localtime(timezone.now()).date(),

@@ -19,7 +19,7 @@
                     {% if user.is_authenticated and user_sports %}
                         <option value="my_sports" {% if selected_sport == 'my_sports' %}selected{% endif %}>My Sports Leagues</option>
                     {% endif %}
-                    <option value="">All Sports</option>
+                    <option value="" {% if not selected_sport %}selected{% endif %}>All Sports</option>
                     {% for sport in sports %}
                         <option value="{{ sport.id }}" {% if selected_sport == sport.id|stringformat:"s" %}selected{% endif %}>
                             {{ sport.league }}
@@ -29,12 +29,16 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Streaming Service</label>
-                <select name="filter_type" class="form-select">
+                <select name="service" class="form-select">
                     {% if user.is_authenticated and user_services %}
-                        <option value="my_selected" {% if filter_type == 'my_selected' %}selected{% endif %}>My Streaming Services</option>
+                        <option value="my_services" {% if selected_service == 'my_services' %}selected{% endif %}>My Streaming Services</option>
                     {% endif %}
-                    <option value="all_streaming" {% if filter_type == 'all_streaming' %}selected{% endif %}>All Streaming Platforms</option>
-                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Games</option>
+                    <option value="all" {% if selected_service == 'all' or not selected_service %}selected{% endif %}>All Streaming Platforms</option>
+                    {% for service in services %}
+                        <option value="{{ service.id }}" {% if selected_service == service.id|stringformat:"s" %}selected{% endif %}>
+                            {{ service.name }}
+                        </option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="col-md-3 d-flex align-items-end">
