@@ -27,38 +27,42 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e # Exit immediately if a command exits with a non-zero status
             cd /opt/gamestream
 
-            # 1. Update the code on the server
+            # 1. Update the code
             sudo git fetch origin main
             sudo git reset --hard origin/main
 
-            # 2. Use Compose to handle the build and restart
-            # The -f flag ensures we ignore any local override files
-            #sudo docker compose -f docker-compose.yml up -d --build
+            # 2. Rebuild and Restart Containers
             sudo docker-compose down
             sudo docker-compose up -d --build
+            
+            # Wait for container to be fully up before running commands
+            sleep 5 
 
-            # 3. Clean up old, unused images to save disk space on AWS
-            sudo docker image prune -f
+            # 3. Fix permissions and collectstatic
+            # Using -u root to ensure we have write access inside the container
+            sudo docker-compose exec -u root -T web python3 manage.py migrate --noinput
+            sudo docker-compose exec -u root -T web python3 manage.py collectstatic --noinput --clear
 
-            #3.1 Ensure staticfiles directory is owned by www-data for collectstatic to work
+            # 4. Sync host permissions so Apache can read the files
             sudo chown -R ubuntu:www-data /opt/gamestream/staticfiles
             sudo chmod -R 755 /opt/gamestream/staticfiles
-
-            # 4. Run migrations inside the new container & collect static files
-            sudo docker-compose exec -T web python3 manage.py migrate --noinput
-            sudo docker-compose exec -T web python3 manage.py collectstatic --noinput
 
             # 5. Refresh Apache
             sudo systemctl restart apache2
 
-
-            # 6. Set up daily cron job to fetch schedule (runs at 6am daily)
-            (crontab -l 2>/dev/null | grep -v "fetch_schedule"; echo "0 6 * * * cd /opt/gamestream && /usr/local/bin/docker-compose exec -T web python manage.py fetch_schedule --days 8 >> /var/log/fetch_schedule.log 2>&1") | crontab -
+            # 6. Set up daily cron job (The "fetch_schedule" logic)
+            # Using 'which docker-compose' ensures we use the correct system path
+            DOCKER_COMPOSE_PATH=$(which docker-compose)
+            (crontab -l 2>/dev/null | grep -v "fetch_schedule"; echo "0 6 * * * cd /opt/gamestream && $DOCKER_COMPOSE_PATH exec -T web python manage.py fetch_schedule --days 8 >> /var/log/fetch_schedule.log 2>&1") | crontab -
 
             # 7. Clean up games without streaming services
             sudo docker-compose exec -T web python manage.py shell -c "from schedules.models import Game; Game.objects.filter(streaming_service__isnull=True).delete()"
+            
+            # 8. Final Image Prune
+            sudo docker image prune -f
           EOF
 
       - name: Cleanup SSH key
