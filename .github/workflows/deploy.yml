@@ -34,8 +34,6 @@ jobs:
             sudo git reset --hard origin/main
 
             # 2. Use Compose to handle the build and restart
-            # The -f flag ensures we ignore any local override files
-            #sudo docker compose -f docker-compose.yml up -d --build
             sudo docker-compose down
             sudo docker-compose up -d --build
 
