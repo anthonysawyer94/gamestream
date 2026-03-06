@@ -10,22 +10,22 @@
   <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/python-3.14-blue?style=flat-square" /></a>
   <a href="https://www.djangoproject.com/"><img alt="Django" src="https://img.shields.io/badge/Django-5.2.12-green?style=flat-square" /></a>
   <a href="https://github.com/anthonysawyer94/gamestream/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/anthonysawyer94/gamestream?style=flat-square" /></a>
-  <a href="https://github.com/anthonysawyer94/gamestream/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/anthonysawyer94/gamestream?style=flat-square" /></a>
+  <a href="https://github.com/anthonysawyer94/gamestream/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/gamestream?style=flat-square" /></a>
 </p>
 
 ---
 
 ## About
 
-GameStream shows you which NBA, MLB, NHL, and NCAA basketball games are streaming on the services you subscribe to. Connect your accounts, select your streaming services, and never miss a game again.
+GameStream shows you which sports games are streaming on the services you subscribe to. Connect your accounts, select your streaming services, and never miss a game again.
 
 ## Features
 
 - **Personalized Schedule** - See games only on services you subscribe to
-- **Multi-Sport Support** - NBA, MLB, NHL, and NCAA Basketball
+- **Multi-Sport Support** - NBA, MLB, NHL, NFL, NCAA, UFC, MLS, Premier League, La Liga, Bundesliga, Serie A, Champions League, Europa League, F1 Racing
 - **User Accounts** - Save your streaming service preferences
 - **Full Schedule View** - Browse all games with filters by sport and service
-- **Automatic Updates** - Fetches latest schedules from ESPN API
+- **Automatic Updates** - Fetches latest schedules from ESPN API daily
 
 ## Quick Start
 
@@ -78,8 +78,8 @@ Deployed automatically to AWS EC2 via GitHub Actions on push to main.
 
 ## Tech Stack
 
-- **Backend:** Django 6.0, Python 3.14
-- **Database:** SQLite (development)
+- **Backend:** Django 5.2.12, Python 3.14
+- **Database:** SQLite (development), PostgreSQL (production)
 - **Frontend:** Django Templates, Bootstrap 5
 - **Data Source:** ESPN Unofficial API
 - **Container:** Docker, Gunicorn

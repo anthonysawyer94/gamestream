@@ -56,6 +56,7 @@ class Game(models.Model):
     home_rank = models.PositiveIntegerField(null=True, blank=True)
     away_rank = models.PositiveIntegerField(null=True, blank=True)
     card_type = models.CharField(max_length=20, blank=True, default='')  # 'early_prelims', 'prelims', 'main_card'
+    venue = models.CharField(max_length=100, blank=True, default='')
 
     class Meta:
         ordering = ['start_time']

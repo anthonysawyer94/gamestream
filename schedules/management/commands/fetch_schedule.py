@@ -22,32 +22,33 @@ SPORT_MAPPING = {
     'uefa_europa': {'name': 'Soccer', 'league': 'Europa League', 'sport_path': 'soccer/uefa.europa', 'color': '#FF6600'},
     'fifa_world': {'name': 'Soccer', 'league': 'World Cup', 'sport_path': 'soccer/fifa.world', 'color': '#1B1B1B'},
     'ufc': {'name': 'MMA', 'league': 'UFC', 'sport_path': 'mma/ufc', 'color': '#D00000'},
+    'f1': {'name': 'Racing', 'league': 'F1', 'sport_path': 'racing/f1', 'color': '#FF1801'},
 
     'tennis_wta': {'name': 'Tennis', 'league': 'WTA', 'sport_path': 'tennis/wta', 'color': '#FF69B4'},
     'tennis_atp': {'name': 'Tennis', 'league': 'ATP', 'sport_path': 'tennis/atp', 'color': '#4169E1'},
 }
 
 BROADCAST_MAPPING = {
-    'ESPN': 'espn_plus',
-    'ESPN2': 'espn_plus',
-    'ESPN+': 'espn_plus',
-    'ABC': None,
-    'TNT': None,
-    'TBS': None,
+    'ESPN': ['espn_plus'],
+    'ESPN2': ['espn_plus'],
+    'ESPN+': ['espn_plus'],
+    'ABC': ['fubotv', 'youtube_tv'],
+    'TNT': ['youtube_tv', 'fubotv'],
+    'TBS': ['fubotv', 'youtube_tv'],
     'NBA TV': None,
     'MLB Network': None,
-    'FOX': 'fubotv',
-    'FS1': 'fubotv',
-    'Amazon': 'prime_video',
-    'Prime Video': 'prime_video',
-    'Netflix': 'netflix',
-    'HBO Max': 'hbo_max',
-    'Max': 'hbo_max',
-    'Paramount+': 'paramount_plus',
-    'Apple TV+': 'apple_tv',
-    'Peacock': 'peacock',
+    'FOX': ['fubotv', 'youtube_tv'],
+    'FS1': ['fubotv', 'youtube_tv'],
+    'Amazon': ['prime_video'],
+    'Prime Video': ['prime_video'],
+    'Netflix': ['netflix'],
+    'HBO Max': ['hbo_max'],
+    'Max': ['hbo_max'],
+    'Paramount+': ['paramount_plus'],
+    'Apple TV': ['apple_tv'],
+    'Peacock': ['peacock'],
     'NBC': None,
-    'USA': None,
+    'USA': ['fubotv', 'youtube_tv'],
     'Telemundo': None,
     'Universo': None,
 }
@@ -86,7 +87,12 @@ class Command(BaseCommand):
         if sport_path.startswith('mma/'):
             self.fetch_ufc_schedule(sport_path, sport_key, days)
             return
-        
+
+        # Check if this is F1 racing - handle differently (filter Qual and Race only)
+        if sport_path.startswith('racing/'):
+            self.fetch_f1_schedule(sport_path, sport_key, days)
+            return
+
         # Fetch more days for World Cup (tournament is in June 2026)
         if sport_key == 'fifa_world':
             days = 120  # Fetch ~4 months ahead for World Cup
@@ -161,10 +167,14 @@ class Command(BaseCommand):
                     for b in broadcast_names:
                         for key, slug in BROADCAST_MAPPING.items():
                             if key and key.lower() in b.lower():
-                                service = StreamingService.objects.filter(
-                                    slug=slug).first()
-                                if service and service not in streaming_services:
-                                    streaming_services.append(service)
+                                slugs = slug if slug and isinstance(
+                                    slug, list) else [slug]
+                                for s in slugs:
+                                    if s:
+                                        service = StreamingService.objects.filter(
+                                            slug=s).first()
+                                        if service and service not in streaming_services:
+                                            streaming_services.append(service)
 
                 if not streaming_services:
                     continue
@@ -415,10 +425,14 @@ class Command(BaseCommand):
                     for b in broadcast_names:
                         for key, slug in BROADCAST_MAPPING.items():
                             if key and key.lower() in b.lower():
-                                service = StreamingService.objects.filter(
-                                    slug=slug).first()
-                                if service and service not in streaming_services:
-                                    streaming_services.append(service)
+                                slugs = slug if slug and isinstance(
+                                    slug, list) else [slug]
+                                for s in slugs:
+                                    if s:
+                                        service = StreamingService.objects.filter(
+                                            slug=s).first()
+                                        if service and service not in streaming_services:
+                                            streaming_services.append(service)
 
                     if not streaming_services:
                         continue
@@ -518,3 +532,154 @@ class Command(BaseCommand):
 
         if updated:
             team.save()
+
+    def fetch_f1_schedule(self, sport_path, sport_key, days):
+        """Fetch F1 races - filter for Qualifying and Race only (no practice sessions)"""
+        sport, created = Sport.objects.get_or_create(
+            slug=sport_key,
+            defaults={
+                'name': SPORT_MAPPING[sport_key]['name'],
+                'league': SPORT_MAPPING[sport_key]['league'],
+                'color': SPORT_MAPPING[sport_key].get('color', ''),
+            }
+        )
+
+        today = timezone.now().date()
+        start_date = today - timedelta(days=1)
+
+        for day_offset in range(days):
+            date = start_date + timedelta(days=day_offset)
+            date_str = date.strftime('%Y%m%d')
+
+            url = f"https://site.api.espn.com/apis/site/v2/sports/{sport_path}/scoreboard?dates={date_str}"
+
+            try:
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+
+                if 'events' in data:
+                    self.process_f1_events(data['events'], sport)
+
+            except requests.RequestException as e:
+                self.stdout.write(self.style.WARNING(
+                    f"Error fetching F1 {date_str}: {e}"))
+                continue
+
+    def process_f1_events(self, events, sport):
+        """Process F1 events - filter for Qualifying and Race only"""
+        # Get or create a placeholder team for F1 races
+        f1_team, _ = Team.objects.get_or_create(
+            sport=sport,
+            espn_id='f1_race',
+            defaults={
+                'name': 'F1 Race',
+                'abbreviation': 'F1',
+                'logo_url': '',
+            }
+        )
+
+        for event in events:
+            try:
+                event_name = event.get('name', 'F1 Grand Prix')
+                event_id = event.get('id')
+
+                # Get circuit location
+                circuit = event.get('circuit', {})
+                circuit_address = circuit.get('address', {})
+                city = circuit_address.get('city', '')
+                country = circuit_address.get('country', '')
+                venue = f"{city}, {country}" if city and country else (
+                    city or country or '')
+
+                competitions = event.get('competitions', [])
+
+                for competition in competitions:
+                    competition_type = competition.get('type', {})
+                    comp_id = competition_type.get('id', '')
+                    comp_abbrev = competition_type.get('abbreviation', '')
+
+                    # Only process Qualifying (id=2) and Race (id=3), skip FP1, FP2, FP3
+                    if comp_id not in ['2', '3']:
+                        continue
+
+                    start_time_str = competition.get('date')
+                    if start_time_str:
+                        start_time = datetime.fromisoformat(
+                            start_time_str.replace('Z', '+00:00'))
+                    else:
+                        continue
+
+                    broadcast_names = []
+                    geo_broadcasts = competition.get('geoBroadcasts', [])
+                    for gb in geo_broadcasts:
+                        media = gb.get('media', {})
+                        short_name = media.get('shortName', '')
+                        if short_name:
+                            broadcast_names.append(short_name)
+
+                    # Also check regular broadcasts
+                    broadcasts = competition.get('broadcasts', [])
+                    for b in broadcasts:
+                        names = b.get('names', [])
+                        broadcast_names.extend(names)
+
+                    # Also check broadcast field directly
+                    direct_broadcast = competition.get('broadcast', '')
+                    if direct_broadcast and direct_broadcast not in broadcast_names:
+                        broadcast_names.append(direct_broadcast)
+
+                    streaming_services = []
+                    for b in broadcast_names:
+                        for key, slug in BROADCAST_MAPPING.items():
+                            if key and key.lower() in b.lower():
+                                slugs = slug if slug and isinstance(
+                                    slug, list) else [slug]
+                                for s in slugs:
+                                    if s:
+                                        service = StreamingService.objects.filter(
+                                            slug=s).first()
+                                        if service and service not in streaming_services:
+                                            streaming_services.append(service)
+
+                    if not streaming_services:
+                        continue
+
+                    # Strip sponsor prefixes from event name
+                    sponsors = ['Qatar Airways ', 'Heineken ', 'Crypto.com ', 'Lenovo ', 'Gulf Air ',
+                                'STC ', 'MSC Cruises ', 'Pirelli ', 'Belgian ', 'AWS ',
+                                'Tag Heuer ', 'Singapore Airlines ', 'Etihad Airways ']
+                    clean_event_name = event_name
+                    for sponsor in sponsors:
+                        clean_event_name = clean_event_name.replace(sponsor, '')
+
+                    # Determine round label (Grand Prix name + type)
+                    round_label = clean_event_name
+                    if comp_id == '2':
+                        round_label = f"{clean_event_name} - Qualifying"
+                    else:
+                        round_label = f"{clean_event_name} - Race"
+
+                    status = competition.get('status', {})
+                    status_state = status.get('state', 'pre')
+
+                    game, created = Game.objects.update_or_create(
+                        sport=sport,
+                        espn_id=f"{event_id}-{comp_id}",
+                        defaults={
+                            'home_team': f1_team,
+                            'away_team': f1_team,
+                            'start_time': start_time,
+                            'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
+                            'status': status_state,
+                            'round_name': round_label,
+                            'venue': venue,
+                        }
+                    )
+                    if streaming_services:
+                        game.streaming_services.set(streaming_services)
+
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(
+                    f"Error processing F1 event: {e}"))
+                continue

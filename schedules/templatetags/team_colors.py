@@ -74,3 +74,11 @@ def get_weight_class(round_name):
     if ':' in round_name:
         return round_name.split(':')[0].strip()
     return round_name
+
+
+@register.filter
+def replace(text, old_string):
+    """Replace a string with another string"""
+    if not text:
+        return ''
+    return text.replace(old_string, '')
