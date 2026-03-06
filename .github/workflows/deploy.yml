@@ -43,22 +43,17 @@ jobs:
             sudo docker image prune -f
 
             # 4. Run migrations inside the new container & collect static files
-            sudo docker-compose exec -T web python manage.py migrate --noinput
-            sudo docker-compose exec -T web python manage.py collectstatic --noinput
+            sudo docker-compose exec -T web python3 manage.py migrate --noinput
+            sudo docker-compose exec -T web python3 manage.py collectstatic --noinput
 
-            # 5. THE FIX: Change ownership from root to the web server user (www-data)
-            # This allows Apache to actually serve the files
-            sudo chown -R www-data:www-data /opt/gamestream/static
-            sudo chmod -R 755 /opt/gamestream/static
-
-            # 6. Refresh Apache
+            # 5. Refresh Apache
             sudo systemctl restart apache2
 
 
-            # 7. Set up daily cron job to fetch schedule (runs at 6am daily)
+            # 6. Set up daily cron job to fetch schedule (runs at 6am daily)
             (crontab -l 2>/dev/null | grep -v "fetch_schedule"; echo "0 6 * * * cd /opt/gamestream && /usr/local/bin/docker-compose exec -T web python manage.py fetch_schedule --days 8 >> /var/log/fetch_schedule.log 2>&1") | crontab -
 
-            # 8. Clean up games without streaming services
+            # 7. Clean up games without streaming services
             sudo docker-compose exec -T web python manage.py shell -c "from schedules.models import Game; Game.objects.filter(streaming_service__isnull=True).delete()"
           EOF
 
