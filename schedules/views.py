@@ -22,10 +22,7 @@ def home(request):
     ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by('start_time')
 
     cutoff_time = timezone.now() - timedelta(hours=5)
-    games = games.exclude(
-        status='post',
-        start_time__lt=cutoff_time
-    )
+    games = games.exclude(start_time__lt=cutoff_time)
 
     user_services = []
     if request.user.is_authenticated:
@@ -84,10 +81,7 @@ def schedule(request):
     ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by('start_time')
 
     cutoff_time = timezone.now() - timedelta(hours=5)
-    games = games.exclude(
-        status='post',
-        start_time__lt=cutoff_time
-    )
+    games = games.exclude(start_time__lt=cutoff_time)
 
     if sport_id == 'my_sports' and user_sports:
         games = games.filter(sport_id__in=user_sports)
