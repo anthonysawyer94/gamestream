@@ -42,6 +42,10 @@ jobs:
             # 3. Clean up old, unused images to save disk space on AWS
             sudo docker image prune -f
 
+            #3.1 Ensure staticfiles directory is owned by www-data for collectstatic to work
+            sudo chown -R ubuntu:www-data /opt/gamestream/staticfiles
+            sudo chmod -R 755 /opt/gamestream/staticfiles
+
             # 4. Run migrations inside the new container & collect static files
             sudo docker-compose exec -T web python3 manage.py migrate --noinput
             sudo docker-compose exec -T web python3 manage.py collectstatic --noinput
