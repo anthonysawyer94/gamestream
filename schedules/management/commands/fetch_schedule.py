@@ -24,8 +24,8 @@ SPORT_MAPPING = {
     'ufc': {'name': 'MMA', 'league': 'UFC', 'sport_path': 'mma/ufc', 'color': '#D00000'},
     'f1': {'name': 'Racing', 'league': 'F1', 'sport_path': 'racing/f1', 'color': '#FF1801'},
 
-    'tennis_wta': {'name': 'Tennis', 'league': 'WTA', 'sport_path': 'tennis/wta', 'color': '#FF69B4'},
-    'tennis_atp': {'name': 'Tennis', 'league': 'ATP', 'sport_path': 'tennis/atp', 'color': '#4169E1'},
+    # 'tennis_wta': {'name': 'Tennis', 'league': 'WTA', 'sport_path': 'tennis/wta', 'color': '#FF69B4'},
+    # 'tennis_atp': {'name': 'Tennis', 'league': 'ATP', 'sport_path': 'tennis/atp', 'color': '#4169E1'},
 }
 
 BROADCAST_MAPPING = {
@@ -651,7 +651,8 @@ class Command(BaseCommand):
                                 'Tag Heuer ', 'Singapore Airlines ', 'Etihad Airways ']
                     clean_event_name = event_name
                     for sponsor in sponsors:
-                        clean_event_name = clean_event_name.replace(sponsor, '')
+                        clean_event_name = clean_event_name.replace(
+                            sponsor, '')
 
                     # Determine round label (Grand Prix name + type)
                     round_label = clean_event_name
