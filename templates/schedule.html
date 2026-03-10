@@ -525,7 +525,11 @@
                                     
                                     <!-- VS Divider with Weight Class -->
                                     <div class="vs-divider">
-                                        <div class="game-time" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                        {% if game.start_time %}
+                                            <div class="game-time" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                        {% else %}
+                                            <div class="game-time">TBD</div>
+                                        {% endif %}
                                         <div class="vs-text">VS</div>
                                     </div>
                                     
@@ -625,7 +629,11 @@
                                 
                                 <!-- Time -->
                                 <div class="f1-time-container">
-                                    <div class="game-time" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                    {% if game.start_time %}
+                                        <div class="game-time" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                    {% else %}
+                                        <div class="game-time">TBD</div>
+                                    {% endif %}
                                 </div>
                                 
                                 <!-- Bottom info bar -->
@@ -686,7 +694,11 @@
                                     
                                     <!-- VS Divider -->
                                     <div class="vs-divider">
-                                        <div class="game-time" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                        {% if game.start_time %}
+                                            <div class="game-time" data-utc="{{ game.start_time|date:"c" }}"></div>
+                                        {% else %}
+                                            <div class="game-time">TBD</div>
+                                        {% endif %}
                                         <div class="vs-text">VS</div>
                                     </div>
                                     
@@ -753,6 +765,235 @@
             </div>
         </div>
     {% endfor %}
+
+    {% if tbd_games %}
+        <div class="mb-4">
+            <h4 class="border-bottom pb-2 mb-3">
+                TBD Games
+            </h4>
+            
+            <div class="row">
+                {% for game in tbd_games %}
+                    {% get_team_colors game.home_team as home_team_data %}
+                    {% get_team_colors game.away_team as away_team_data %}
+                    
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        {% if game.sport.slug == 'ufc' %}
+                        <!-- UFC Fighter Card -->
+                        <div class="game-card ufc-card">
+                            <div class="diagonal-bg">
+                                <div class="away-bg" style="background: linear-gradient(135deg, #D00000 0%, #8B0000 100%);"></div>
+                                <div class="home-bg" style="background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);"></div>
+                            </div>
+                            
+                            <div class="game-content">
+                                <div class="teams-section">
+                                    <div class="team-side">
+                                        {% if game.away_team.headshot_url %}
+                                            <img src="{{ game.away_team.headshot_url }}" alt="{{ game.away_team.name }}" class="fighter-headshot">
+                                        {% else %}
+                                            <div class="team-initial-circle">
+                                                {{ game.away_team.abbreviation|slice:":2"|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="fighter-last-name">{{ game.away_team.name }}</div>
+                                        <div class="fighter-record">{% if game.away_team.record %}{{ game.away_team.record }}{% else %}&nbsp;{% endif %}</div>
+                                    </div>
+                                    
+                                    <div class="vs-divider">
+                                        <div class="game-time">TBD</div>
+                                        <div class="vs-text">VS</div>
+                                    </div>
+                                    
+                                    <div class="team-side">
+                                        {% if game.home_team.headshot_url %}
+                                            <img src="{{ game.home_team.headshot_url }}" alt="{{ game.home_team.name }}" class="fighter-headshot">
+                                        {% else %}
+                                            <div class="team-initial-circle">
+                                                {{ game.home_team.abbreviation|slice:":2"|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="fighter-last-name">{{ game.home_team.name }}</div>
+                                        <div class="fighter-record">{% if game.home_team.record %}{{ game.home_team.record }}{% else %}&nbsp;{% endif %}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="round-info">
+                                    {% if game.round_name %}
+                                        {{ game.round_name|get_weight_class }}
+                                    {% else %}
+                                        <span>&nbsp;</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="game-info-bar">
+                                    <span class="league-badge">UFC 🥊</span>
+                                    {% if selected_service == 'all' %}
+                                        {% for service in game.streaming_services.all %}
+                                            <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                        {% endfor %}
+                                    {% elif selected_service == 'my_services' %}
+                                        {% for service in game.streaming_services.all %}
+                                            {% if service.id in user_services %}
+                                                <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for service in game.streaming_services.all %}
+                                            {% if service.id|stringformat:"s" == selected_service %}
+                                                <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                    <button class="btn-expand" onclick="toggleUfcDetails(this)">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <div class="ufc-fighter-details" style="display: none;">
+                                    <div class="fighter-detail-row">
+                                        <div class="fighter-detail-item">
+                                            <strong>{{ game.away_team.name }}</strong>
+                                            {% if game.away_team.nickname %}<span class="nickname">({{ game.away_team.nickname }})</span>{% endif %}
+                                            <div class="detail-stats">
+                                                {% if game.away_team.height %}<span>Height: {{ game.away_team.height }}</span>{% endif %}
+                                                {% if game.away_team.weight %}<span>Weight: {{ game.away_team.weight }}</span>{% endif %}
+                                                {% if game.away_team.reach %}<span>Reach: {{ game.away_team.reach }}</span>{% endif %}
+                                                {% if game.away_team.stance %}<span>Stance: {{ game.away_team.stance }}</span>{% endif %}
+                                                {% if game.away_team.age %}<span>Age: {{ game.away_team.age }}</span>{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="fighter-detail-row">
+                                        <div class="fighter-detail-item">
+                                            <strong>{{ game.home_team.name }}</strong>
+                                            {% if game.home_team.nickname %}<span class="nickname">({{ game.home_team.nickname }})</span>{% endif %}
+                                            <div class="detail-stats">
+                                                {% if game.home_team.height %}<span>Height: {{ game.home_team.height }}</span>{% endif %}
+                                                {% if game.home_team.weight %}<span>Weight: {{ game.home_team.weight }}</span>{% endif %}
+                                                {% if game.home_team.reach %}<span>Reach: {{ game.home_team.reach }}</span>{% endif %}
+                                                {% if game.home_team.stance %}<span>Stance: {{ game.home_team.stance }}</span>{% endif %}
+                                                {% if game.home_team.age %}<span>Age: {{ game.home_team.age }}</span>{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% elif game.sport.slug == 'f1' %}
+                        <!-- F1 Racing Card -->
+                        <div class="game-card f1-card">
+                            <div class="game-content">
+                                <div class="f1-race-info">
+                                    <div class="f1-race-name">{{ game.round_name|replace:" - Qualifying"|replace:" - Race" }}</div>
+                                    <div class="f1-race-type">
+                                        {% if 'Qualifying' in game.round_name %}QUALIFYING{% else %}RACE{% endif %}
+                                    </div>
+                                    {% if game.venue %}<div class="f1-race-venue">{{ game.venue }}</div>{% endif %}
+                                </div>
+                                <div class="f1-time-container">
+                                    <div class="game-time">TBD</div>
+                                </div>
+                                <div class="game-info-bar">
+                                    <span class="league-badge">F1 🏎️</span>
+                                    {% if selected_service == 'all' %}
+                                        {% for service in game.streaming_services.all %}
+                                            <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                        {% endfor %}
+                                    {% elif selected_service == 'my_services' %}
+                                        {% for service in game.streaming_services.all %}
+                                            {% if service.id in user_services %}
+                                                <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for service in game.streaming_services.all %}
+                                            {% if service.id|stringformat:"s" == selected_service %}
+                                                <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Regular Team Sport Card -->
+                        <div class="game-card">
+                            <div class="diagonal-bg">
+                                <div class="away-bg" style="background: linear-gradient(135deg, {{ away_team_data.0 }} 0%, {{ away_team_data.1 }} 100%);"></div>
+                                <div class="home-bg" style="background: linear-gradient(135deg, {{ home_team_data.0 }} 0%, {{ home_team_data.1 }} 100%);"></div>
+                            </div>
+                            
+                            <div class="game-content">
+                                <div class="teams-section">
+                                    <div class="team-side">
+                                        {% if game.away_team.logo_url %}
+                                            <img src="{{ game.away_team.logo_url }}" alt="{{ game.away_team.name }}" class="team-logo">
+                                        {% else %}
+                                            <div class="team-initial-circle">
+                                                {{ game.away_team.abbreviation|slice:":2"|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="team-name">{{ game.away_team.name }}</div>
+                                        {% if game.away_rank %}<div class="team-rank">#{{ game.away_rank }}</div>{% endif %}
+                                    </div>
+                                    
+                                    <div class="vs-divider">
+                                        <div class="game-time">TBD</div>
+                                        <div class="vs-text">@</div>
+                                    </div>
+                                    
+                                    <div class="team-side">
+                                        {% if game.home_team.logo_url %}
+                                            <img src="{{ game.home_team.logo_url }}" alt="{{ game.home_team.name }}" class="team-logo">
+                                        {% else %}
+                                            <div class="team-initial-circle">
+                                                {{ game.home_team.abbreviation|slice:":2"|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="team-name">{{ game.home_team.name }}</div>
+                                        {% if game.home_rank %}<div class="team-rank">#{{ game.home_rank }}</div>{% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="round-info">
+                                    {% if game.round_name %}
+                                        <span>{{ game.round_name }}</span>
+                                    {% else %}
+                                        <span>&nbsp;</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="game-info-bar">
+                                    <span class="league-badge" style="background: {{ game.sport.color }};">{{ game.sport.league }}</span>
+                                    {% if selected_service == 'all' %}
+                                        {% for service in game.streaming_services.all %}
+                                            <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                        {% endfor %}
+                                    {% elif selected_service == 'my_services' %}
+                                        {% for service in game.streaming_services.all %}
+                                            {% if service.id in user_services %}
+                                                <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        {% for service in game.streaming_services.all %}
+                                            {% if service.id|stringformat:"s" == selected_service %}
+                                                <span class="service-badge badge-{{ service.slug }}">{{ service.name }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
 {% endif %}
 
 <script>

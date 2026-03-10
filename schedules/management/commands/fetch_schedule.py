@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import requests
 from django.core.management.base import BaseCommand
+from django.db.models import Q
 from django.utils import timezone
 
 from schedules.models import Game, Sport, Team
@@ -74,7 +75,9 @@ class Command(BaseCommand):
                 sport_data['sport_path'], sport_key, days)
 
         cutoff = timezone.now() - timedelta(days=2)
-        deleted_count = Game.objects.filter(start_time__lt=cutoff).delete()[0]
+        deleted_count = Game.objects.filter(
+            Q(start_time__lt=cutoff) | Q(start_time__isnull=True, status__in=['post', 'canceled'])
+        ).delete()[0]
         if deleted_count:
             self.stdout.write(self.style.WARNING(
                 f"Deleted {deleted_count} games older than 2 days"))
@@ -132,6 +135,8 @@ class Command(BaseCommand):
                 continue
 
     def process_events(self, events, sport):
+        tbd_team = self.get_tbd_team(sport)
+
         for event in events:
             try:
                 competition = event.get('competitions', [{}])[0]
@@ -145,18 +150,32 @@ class Command(BaseCommand):
                 away_team_data = next(
                     (c for c in competitors if c.get('homeAway') == 'away'), None)
 
+                teams_tbd = False
                 if not home_team_data or not away_team_data:
-                    continue
-
-                home_team = self.get_or_create_team(home_team_data, sport)
-                away_team = self.get_or_create_team(away_team_data, sport)
+                    teams_tbd = True
+                    home_team = tbd_team
+                    away_team = tbd_team
+                else:
+                    home_team = self.get_or_create_team(home_team_data, sport)
+                    away_team = self.get_or_create_team(away_team_data, sport)
 
                 start_time_str = competition.get('date')
                 if start_time_str:
                     start_time = datetime.fromisoformat(
                         start_time_str.replace('Z', '+00:00'))
+                    time_tbd = False
                 else:
-                    continue
+                    start_time = None
+                    time_tbd = True
+
+                if time_tbd and teams_tbd:
+                    tbd_status = 'both'
+                elif time_tbd:
+                    tbd_status = 'time'
+                elif teams_tbd:
+                    tbd_status = 'teams'
+                else:
+                    tbd_status = ''
 
                 broadcast_names = competition.get('broadcasts', [{}])[0].get(
                     'names', []) if competition.get('broadcasts') else []
@@ -203,10 +222,14 @@ class Command(BaseCommand):
                     leg = leg_data.get('value')
 
                 # Extract team rankings
-                home_rank = home_team_data.get(
-                    'curatedRank', {}).get('current')
-                away_rank = away_team_data.get(
-                    'curatedRank', {}).get('current')
+                home_rank = None
+                away_rank = None
+                if home_team_data:
+                    home_rank = home_team_data.get(
+                        'curatedRank', {}).get('current')
+                if away_team_data:
+                    away_rank = away_team_data.get(
+                        'curatedRank', {}).get('current')
                 # Only use ranking if it's a valid number (not 99 which means unranked)
                 if home_rank and home_rank > 50:
                     home_rank = None
@@ -229,6 +252,7 @@ class Command(BaseCommand):
                             'total_legs': total_legs,
                             'home_rank': home_rank,
                             'away_rank': away_rank,
+                            'tbd_status': tbd_status,
                         }
                     )
                     if streaming_services:
@@ -284,6 +308,18 @@ class Command(BaseCommand):
                 updated = True
             if updated:
                 team.save()
+        return team
+
+    def get_tbd_team(self, sport):
+        team, created = Team.objects.get_or_create(
+            sport=sport,
+            espn_id='tbd',
+            defaults={
+                'name': 'TBD',
+                'abbreviation': 'TBD',
+                'logo_url': '',
+            }
+        )
         return team
 
     def fetch_ufc_schedule(self, sport_path, sport_key, days):
@@ -441,8 +477,10 @@ class Command(BaseCommand):
                     if start_time_str:
                         start_time = datetime.fromisoformat(
                             start_time_str.replace('Z', '+00:00'))
+                        time_tbd = False
                     else:
-                        continue
+                        start_time = None
+                        time_tbd = True
 
                     # Determine card type based on format (5 rounds = main event)
                     card_type = ''
@@ -458,6 +496,8 @@ class Command(BaseCommand):
                     if weight_class:
                         round_label = f"{weight_class}: {fighter1_name} vs {fighter2_name}"
 
+                    tbd_status = 'time' if time_tbd else ''
+
                     game, created = Game.objects.update_or_create(
                         sport=sport,
                         espn_id=f"{event_id}-{competition_id}",
@@ -469,6 +509,7 @@ class Command(BaseCommand):
                             'status': status_state,
                             'round_name': round_label,
                             'card_type': card_type,
+                            'tbd_status': tbd_status,
                         }
                     )
                     if streaming_services:
@@ -607,8 +648,10 @@ class Command(BaseCommand):
                     if start_time_str:
                         start_time = datetime.fromisoformat(
                             start_time_str.replace('Z', '+00:00'))
+                        time_tbd = False
                     else:
-                        continue
+                        start_time = None
+                        time_tbd = True
 
                     broadcast_names = []
                     geo_broadcasts = competition.get('geoBroadcasts', [])
@@ -664,6 +707,8 @@ class Command(BaseCommand):
                     status = competition.get('status', {})
                     status_state = status.get('state', 'pre')
 
+                    tbd_status = 'time' if time_tbd else ''
+
                     game, created = Game.objects.update_or_create(
                         sport=sport,
                         espn_id=f"{event_id}-{comp_id}",
@@ -675,6 +720,7 @@ class Command(BaseCommand):
                             'status': status_state,
                             'round_name': round_label,
                             'venue': venue,
+                            'tbd_status': tbd_status,
                         }
                     )
                     if streaming_services:

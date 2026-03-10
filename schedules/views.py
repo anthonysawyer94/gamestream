@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Q
+from django.db.models import Case, Q, When
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -17,12 +17,15 @@ def home(request):
     week_later = today + timedelta(days=7)
 
     games = Game.objects.filter(
-        start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
-        start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))
-    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by('start_time')
+        Q(start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
+          start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))) |
+        Q(start_time__isnull=True)
+    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by(
+        Case(When(start_time__isnull=True, then=1)), 'start_time'
+    )
 
     cutoff_time = timezone.now() - timedelta(hours=5)
-    games = games.exclude(start_time__lt=cutoff_time)
+    games = games.exclude(Q(start_time__lt=cutoff_time) & Q(start_time__isnull=False))
 
     user_services = []
     if request.user.is_authenticated:
@@ -38,15 +41,20 @@ def home(request):
     services = StreamingService.objects.all()
 
     games_by_date = {}
+    tbd_games = []
     for game in games:
-        local_time = timezone.localtime(game.start_time)
-        date_key = local_time.date()
-        if date_key not in games_by_date:
-            games_by_date[date_key] = []
-        games_by_date[date_key].append(game)
+        if game.start_time:
+            local_time = timezone.localtime(game.start_time)
+            date_key = local_time.date()
+            if date_key not in games_by_date:
+                games_by_date[date_key] = []
+            games_by_date[date_key].append(game)
+        else:
+            tbd_games.append(game)
 
     context = {
         'games_by_date': games_by_date,
+        'tbd_games': tbd_games,
         'sports': sports,
         'services': services,
         'user_services': user_services,
@@ -76,12 +84,15 @@ def schedule(request):
     service_id = request.GET.get('service', service_default)
 
     games = Game.objects.filter(
-        start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
-        start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))
-    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by('start_time')
+        Q(start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
+          start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))) |
+        Q(start_time__isnull=True)
+    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by(
+        Case(When(start_time__isnull=True, then=1)), 'start_time'
+    )
 
     cutoff_time = timezone.now() - timedelta(hours=5)
-    games = games.exclude(start_time__lt=cutoff_time)
+    games = games.exclude(Q(start_time__lt=cutoff_time) & Q(start_time__isnull=False))
 
     if sport_id == 'my_sports' and user_sports:
         games = games.filter(sport_id__in=user_sports)
@@ -91,21 +102,26 @@ def schedule(request):
     if service_id == 'my_services' and user_services:
         games = games.filter(streaming_services__id__in=user_services).distinct()
     elif service_id and service_id != 'all':
-        games = games.filter(streaming_services__id=service_id).distinct()
+        games = games.filter(streaming_services__id__in=[service_id]).distinct()
 
     sports = Sport.objects.all()
     services = StreamingService.objects.all()
 
     games_by_date = {}
+    tbd_games = []
     for game in games:
-        local_time = timezone.localtime(game.start_time)
-        date_key = local_time.date()
-        if date_key not in games_by_date:
-            games_by_date[date_key] = []
-        games_by_date[date_key].append(game)
+        if game.start_time:
+            local_time = timezone.localtime(game.start_time)
+            date_key = local_time.date()
+            if date_key not in games_by_date:
+                games_by_date[date_key] = []
+            games_by_date[date_key].append(game)
+        else:
+            tbd_games.append(game)
 
     context = {
         'games_by_date': games_by_date,
+        'tbd_games': tbd_games,
         'sports': sports,
         'services': services,
         'selected_sport': sport_id,

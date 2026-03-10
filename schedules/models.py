@@ -41,7 +41,7 @@ class Game(models.Model):
     sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name='games')
     home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='home_games')
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_games')
-    start_time = models.DateTimeField()
+    start_time = models.DateTimeField(null=True, blank=True)
     broadcast = models.CharField(max_length=200, blank=True)
     streaming_services = models.ManyToManyField(
         StreamingService,
@@ -55,12 +55,14 @@ class Game(models.Model):
     total_legs = models.PositiveIntegerField(null=True, blank=True)
     home_rank = models.PositiveIntegerField(null=True, blank=True)
     away_rank = models.PositiveIntegerField(null=True, blank=True)
-    card_type = models.CharField(max_length=20, blank=True, default='')  # 'early_prelims', 'prelims', 'main_card'
+    card_type = models.CharField(max_length=20, blank=True, default='')
     venue = models.CharField(max_length=100, blank=True, default='')
+    tbd_status = models.CharField(max_length=10, default='')
 
     class Meta:
         ordering = ['start_time']
         unique_together = ('sport', 'espn_id')
 
     def __str__(self):
-        return f"{self.away_team.abbreviation} @ {self.home_team.abbreviation} - {self.start_time.date()}"
+        time_str = self.start_time.date() if self.start_time else 'TBD'
+        return f"{self.away_team.abbreviation} @ {self.home_team.abbreviation} - {time_str}"
