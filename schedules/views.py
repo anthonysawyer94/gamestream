@@ -20,7 +20,7 @@ def home(request):
         Q(start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
           start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))) |
         Q(start_time__isnull=True)
-    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by(
+    ).exclude(tbd_status__contains='teams').select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by(
         Case(When(start_time__isnull=True, then=1)), 'start_time'
     )
 
@@ -41,7 +41,6 @@ def home(request):
     services = StreamingService.objects.all()
 
     games_by_date = {}
-    tbd_games = []
     for game in games:
         if game.start_time:
             local_time = timezone.localtime(game.start_time)
@@ -54,7 +53,6 @@ def home(request):
 
     context = {
         'games_by_date': games_by_date,
-        'tbd_games': tbd_games,
         'sports': sports,
         'services': services,
         'user_services': user_services,
@@ -87,7 +85,7 @@ def schedule(request):
         Q(start_time__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
           start_time__lt=timezone.make_aware(timezone.datetime.combine(week_later, timezone.datetime.min.time()))) |
         Q(start_time__isnull=True)
-    ).select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by(
+    ).exclude(tbd_status__contains='teams').select_related('home_team', 'away_team', 'sport').prefetch_related('streaming_services').order_by(
         Case(When(start_time__isnull=True, then=1)), 'start_time'
     )
 
@@ -108,7 +106,6 @@ def schedule(request):
     services = StreamingService.objects.all()
 
     games_by_date = {}
-    tbd_games = []
     for game in games:
         if game.start_time:
             local_time = timezone.localtime(game.start_time)
@@ -116,12 +113,9 @@ def schedule(request):
             if date_key not in games_by_date:
                 games_by_date[date_key] = []
             games_by_date[date_key].append(game)
-        else:
-            tbd_games.append(game)
 
     context = {
         'games_by_date': games_by_date,
-        'tbd_games': tbd_games,
         'sports': sports,
         'services': services,
         'selected_sport': sport_id,

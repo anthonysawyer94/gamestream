@@ -62,8 +62,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--days',
             type=int,
-            default=9,
-            help='Number of days to fetch (default: 9 - includes yesterday for timezone coverage)'
+            default=8,
+            help='Number of days to fetch (default: 8 - includes yesterday for timezone coverage)'
         )
 
     def handle(self, *args, **options):
@@ -76,7 +76,8 @@ class Command(BaseCommand):
 
         cutoff = timezone.now() - timedelta(days=2)
         deleted_count = Game.objects.filter(
-            Q(start_time__lt=cutoff) | Q(start_time__isnull=True, status__in=['post', 'canceled'])
+            Q(start_time__lt=cutoff) | Q(
+                start_time__isnull=True, status__in=['post', 'canceled'])
         ).delete()[0]
         if deleted_count:
             self.stdout.write(self.style.WARNING(
@@ -173,18 +174,22 @@ class Command(BaseCommand):
                     away_team = tbd_team
                 elif is_tbd_team(home_team_data) or is_tbd_team(away_team_data):
                     teams_tbd = True
-                    home_team_info = home_team_data.get('team', {}) if home_team_data else {}
-                    away_team_info = away_team_data.get('team', {}) if away_team_data else {}
-                    
+                    home_team_info = home_team_data.get(
+                        'team', {}) if home_team_data else {}
+                    away_team_info = away_team_data.get(
+                        'team', {}) if away_team_data else {}
+
                     if is_tbd_team(home_team_data):
                         home_team = tbd_team
                     else:
-                        home_team = self.get_or_create_team(home_team_data, sport)
-                    
+                        home_team = self.get_or_create_team(
+                            home_team_data, sport)
+
                     if is_tbd_team(away_team_data):
                         away_team = tbd_team
                     else:
-                        away_team = self.get_or_create_team(away_team_data, sport)
+                        away_team = self.get_or_create_team(
+                            away_team_data, sport)
                 else:
                     home_team = self.get_or_create_team(home_team_data, sport)
                     away_team = self.get_or_create_team(away_team_data, sport)
