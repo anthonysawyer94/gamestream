@@ -99,6 +99,13 @@
     
     .f1-card {
         background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
+        min-height: 180px;
+        height: 100%;
+    }
+    
+    .f1-card .game-content {
+        height: 100%;
+        min-height: 180px;
     }
     
     .f1-card .f1-race-info {
@@ -613,7 +620,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
                         {% elif game.sport.slug == 'f1' %}
                         <!-- F1 Racing Card -->
                         <div class="game-card f1-card">
@@ -658,7 +664,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>
+                        
                         {% else %}
                         <!-- Regular Team Sports Card -->
                         <div class="game-card">
