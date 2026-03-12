@@ -82,6 +82,14 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 f"Deleted {deleted_count} games older than 2 days"))
 
+        orphaned_tbd = Game.objects.filter(
+            tbd_status__contains='teams',
+            start_time__lt=timezone.now()
+        ).delete()[0]
+        if orphaned_tbd:
+            self.stdout.write(self.style.WARNING(
+                f"Deleted {orphaned_tbd} orphaned TBD games (past start time)"))
+
         self.stdout.write(self.style.SUCCESS(
             'Successfully fetched sports schedule'))
 
@@ -150,11 +158,33 @@ class Command(BaseCommand):
                 away_team_data = next(
                     (c for c in competitors if c.get('homeAway') == 'away'), None)
 
+                def is_tbd_team(team_data):
+                    if not team_data:
+                        return True
+                    team = team_data.get('team', {})
+                    team_id = str(team.get('id', ''))
+                    team_abbrev = team.get('abbreviation', '').upper()
+                    return self.is_espn_tbd_id(team_id) or team_abbrev == 'TBD'
+
                 teams_tbd = False
                 if not home_team_data or not away_team_data:
                     teams_tbd = True
                     home_team = tbd_team
                     away_team = tbd_team
+                elif is_tbd_team(home_team_data) or is_tbd_team(away_team_data):
+                    teams_tbd = True
+                    home_team_info = home_team_data.get('team', {}) if home_team_data else {}
+                    away_team_info = away_team_data.get('team', {}) if away_team_data else {}
+                    
+                    if is_tbd_team(home_team_data):
+                        home_team = tbd_team
+                    else:
+                        home_team = self.get_or_create_team(home_team_data, sport)
+                    
+                    if is_tbd_team(away_team_data):
+                        away_team = tbd_team
+                    else:
+                        away_team = self.get_or_create_team(away_team_data, sport)
                 else:
                     home_team = self.get_or_create_team(home_team_data, sport)
                     away_team = self.get_or_create_team(away_team_data, sport)
@@ -238,22 +268,21 @@ class Command(BaseCommand):
 
                 espn_event_id = event.get('id')
                 if espn_event_id:
-                    game, created = Game.objects.update_or_create(
-                        sport=sport,
-                        espn_id=espn_event_id,
-                        defaults={
-                            'home_team': home_team,
-                            'away_team': away_team,
-                            'start_time': start_time,
-                            'broadcast': broadcast,
-                            'status': status,
-                            'round_name': round_name,
-                            'leg': leg,
-                            'total_legs': total_legs,
-                            'home_rank': home_rank,
-                            'away_rank': away_rank,
-                            'tbd_status': tbd_status,
-                        }
+                    defaults = {
+                        'home_team': home_team,
+                        'away_team': away_team,
+                        'start_time': start_time,
+                        'broadcast': broadcast,
+                        'status': status,
+                        'round_name': round_name,
+                        'leg': leg,
+                        'total_legs': total_legs,
+                        'home_rank': home_rank,
+                        'away_rank': away_rank,
+                        'tbd_status': tbd_status,
+                    }
+                    game, created = self.find_or_create_game(
+                        sport, espn_event_id, home_team, away_team, start_time, defaults
                     )
                     if streaming_services:
                         game.streaming_services.set(streaming_services)
@@ -269,6 +298,9 @@ class Command(BaseCommand):
 
         if not espn_id:
             espn_id = team_data.get('id')
+
+        if self.is_espn_tbd_id(str(espn_id)):
+            return self.get_tbd_team(sport)
 
         team, created = Team.objects.get_or_create(
             sport=sport,
@@ -313,7 +345,7 @@ class Command(BaseCommand):
     def get_tbd_team(self, sport):
         team, created = Team.objects.get_or_create(
             sport=sport,
-            espn_id='tbd',
+            espn_id='-2',
             defaults={
                 'name': 'TBD',
                 'abbreviation': 'TBD',
@@ -321,6 +353,20 @@ class Command(BaseCommand):
             }
         )
         return team
+
+    def is_espn_tbd_id(self, team_id):
+        return team_id in ['-1', '-2', 'tbd']
+
+    def find_or_create_game(self, sport, espn_id, home_team, away_team, start_time, defaults):
+        game = Game.objects.filter(sport=sport, espn_id=espn_id).first()
+        if game:
+            for key, value in defaults.items():
+                setattr(game, key, value)
+            game.save()
+            return game, False
+
+        game = Game.objects.create(sport=sport, espn_id=espn_id, **defaults)
+        return game, True
 
     def fetch_ufc_schedule(self, sport_path, sport_key, days):
         """Fetch UFC/MMA fights - they use individual athletes instead of teams"""
@@ -498,19 +544,18 @@ class Command(BaseCommand):
 
                     tbd_status = 'time' if time_tbd else ''
 
-                    game, created = Game.objects.update_or_create(
-                        sport=sport,
-                        espn_id=f"{event_id}-{competition_id}",
-                        defaults={
-                            'home_team': fighter1_team,
-                            'away_team': fighter2_team,
-                            'start_time': start_time,
-                            'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
-                            'status': status_state,
-                            'round_name': round_label,
-                            'card_type': card_type,
-                            'tbd_status': tbd_status,
-                        }
+                    defaults = {
+                        'home_team': fighter1_team,
+                        'away_team': fighter2_team,
+                        'start_time': start_time,
+                        'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
+                        'status': status_state,
+                        'round_name': round_label,
+                        'card_type': card_type,
+                        'tbd_status': tbd_status,
+                    }
+                    game, created = self.find_or_create_game(
+                        sport, f"{event_id}-{competition_id}", fighter1_team, fighter2_team, start_time, defaults
                     )
                     if streaming_services:
                         game.streaming_services.set(streaming_services)
@@ -709,19 +754,18 @@ class Command(BaseCommand):
 
                     tbd_status = 'time' if time_tbd else ''
 
-                    game, created = Game.objects.update_or_create(
-                        sport=sport,
-                        espn_id=f"{event_id}-{comp_id}",
-                        defaults={
-                            'home_team': f1_team,
-                            'away_team': f1_team,
-                            'start_time': start_time,
-                            'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
-                            'status': status_state,
-                            'round_name': round_label,
-                            'venue': venue,
-                            'tbd_status': tbd_status,
-                        }
+                    defaults = {
+                        'home_team': f1_team,
+                        'away_team': f1_team,
+                        'start_time': start_time,
+                        'broadcast': ', '.join(broadcast_names) if broadcast_names else '',
+                        'status': status_state,
+                        'round_name': round_label,
+                        'venue': venue,
+                        'tbd_status': tbd_status,
+                    }
+                    game, created = self.find_or_create_game(
+                        sport, f"{event_id}-{comp_id}", f1_team, f1_team, start_time, defaults
                     )
                     if streaming_services:
                         game.streaming_services.set(streaming_services)
