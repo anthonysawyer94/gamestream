@@ -34,8 +34,8 @@ BROADCAST_MAPPING = {
     'ESPN2': ['espn_plus'],
     'ESPN+': ['espn_plus'],
     'ABC': ['fubotv', 'youtube_tv'],
-    'TNT': ['youtube_tv', 'fubotv'],
-    'TBS': ['fubotv', 'youtube_tv'],
+    'TNT': ['youtube_tv', 'fubotv', 'hbo_max'],
+    'TBS': ['fubotv', 'youtube_tv', 'hbo_max'],
     'NBA TV': None,
     'MLB Network': None,
     'FOX': ['fubotv', 'youtube_tv'],
@@ -52,6 +52,8 @@ BROADCAST_MAPPING = {
     'USA': ['fubotv', 'youtube_tv'],
     'Telemundo': None,
     'Universo': None,
+    'truTV': ['fubotv', 'youtube_tv', 'hbo_max'],
+    'CBS': ['fubotv', 'youtube_tv', 'paramount_plus'],
 }
 
 
